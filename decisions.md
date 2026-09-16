@@ -16,6 +16,10 @@ Por qué se tomó cada decisión, el código ya explica qué se hizo.
 | DEC-004 | importacion | Dividir train/validación 70/30 reproduciblemente |
 | DEC-005 | calidad-datos | Recortar extremos con umbrales explícitos aprobados |
 | DEC-006 | feature-engineering | Congelar la estrategia de transformaciones para regresión logística |
+| DEC-007 | seleccion-variables | Preseleccionar 40 variables con RFECV y correlación |
+| DEC-008 | modelado | No aplicar balanceo de clases |
+| DEC-009 | modelado | Congelar la configuración candidata de modelización |
+| DEC-010 | despliegue | Consolidar preproducción con artefactos congelados |
 
 ---
 
@@ -48,3 +52,5 @@ Por qué se tomó cada decisión, el código ya explica qué se hizo.
 
 
 **DEC-009 ? Configuración candidata de modelización.** Se congeló `LogisticRegression` con `C=14.528246637516036`, `penalty="l2"`, `solver="saga"` y `max_iter=5000`, seleccionada por ROC AUC medio 0,8919 con 5-fold StratifiedKFold sobre una muestra estratificada del 80%. Recall, precisión, F1 y accuracy quedan como métricas complementarias. La validación externa se realizará posteriormente sobre `02_datos/02_Validacion/validation.pkl`. **Regla:** usar la configuración persistida para el entrenamiento de producción y no usar la validación externa durante la selección.
+
+**DEC-010 — Consolidación de preproducción.** Se integró el flujo en `08_Preproduccion.ipynb` usando el preprocesador ajustado, las 40 variables finalistas y la configuración logística congelada, sin reconstruir transformadores ni evaluar `validation.pkl`. **Por qué:** los artefactos ya codifican la transformación y el modelo aprobados; el notebook 01 solo confirma la lectura del CSV, mientras que el split 70/30 con `random_state=42` está documentado en DEC-004. **Regla:** en consolidaciones estáticas, reutilizar los contratos de artefactos y documentar cualquier paso cuya implementación fuente no esté disponible.

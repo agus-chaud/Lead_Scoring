@@ -130,3 +130,21 @@
 **Por qué la descartamos:** La configuración congelada obtuvo el mejor ROC AUC medio, con desviación estándar 0,0136. La validación externa debe permanecer intacta para medir generalización en una fase posterior.
 
 **Conclusión:** El agente posterior de entrenamiento de producción usará `06_resultados/Modelizacion/config_mejor_modelo.json` y evaluará el modelo final sobre `02_datos/02_Validacion/validation.pkl`.
+
+---
+
+## DEC-010: Consolidación de preproducción con artefactos congelados
+
+**Área:** despliegue | **Fase:** preproducción | **Fecha:** 2026-09-16 | **Estado:** Vigente
+
+**Decisión:** Consolidar `03_notebooks/08_Preproduccion.ipynb` de forma estática a partir de `Leads.csv`, el preprocesador ajustado, la lista de 40 variables finalistas y `config_mejor_modelo.json`. El notebook carga el preprocesador existente, no reconstruye `Pipeline` ni `ColumnTransformer`, y prepara la `LogisticRegression` con `C=14.528246637516036`, `penalty="l2"`, `solver="saga"` y `max_iter=5000`. No utiliza `validation.pkl`.
+
+**Alternativa descartada:** Reconstruir los transformadores desde el notebook de transformación, volver a ajustar artefactos o utilizar la validación externa durante la consolidación.
+
+**Por qué la descartamos:** `05_modelos/preprocesador.joblib`, `01_Documentos/Variables_preseleccionadas.txt` y `06_resultados/Modelizacion/config_mejor_modelo.json` son los contratos persistidos de las fases ya aprobadas. `01_Importacion_Datos.ipynb` confirma la lectura de `Leads.csv` con separador `;` y codificación UTF-8, pero no contiene el split; DEC-004 documenta el split 70/30 con `random_state=42`, que se reproduce y se deja señalado como riesgo residual.
+
+**Conclusión:** En consolidaciones estáticas, reutilizar artefactos congelados como fuente de verdad y documentar explícitamente cualquier paso cuya implementación no esté presente en el notebook fuente.
+
+**Código afectado:** `03_notebooks/08_Preproduccion.ipynb`, `07_despliegue/pre-produccion/00_resumen_limpieza.md`.
+
+---
