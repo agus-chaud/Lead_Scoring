@@ -87,3 +87,17 @@
 **Conclusión:** Para tablones futuros con este esquema, ajustar los transformadores solo en train, conservar únicamente las representaciones finales y validar filas, target, NaN, columnas intermedias, unicidad de nombres y multicolinealidad binaria.
 
 ---
+
+## DEC-007: Preselección supervisada de variables
+
+**Área:** seleccion-variables | **Fase:** preselección | **Fecha:** 2026-09-16 | **Estado:** Vigente
+
+**Decisión:** Aplicar el modo estándar de `ds-07-seleccionar-variables`: `RFECV` con `LogisticRegression` penalizada L1 (`solver="saga"`, `max_iter=5000`), validación `StratifiedKFold` de 5 folds y scoring `roc_auc`. RFECV seleccionó 43 de 52 predictoras. En la revisión de correlación se usó `|Pearson| > 0,70`; se eliminaron por menor importancia supervisada `visitas_total_yj_mm`, `origen_Lead Add Form` y `ocupacion_Unemployed`, quedando 40 variables finales.
+
+**Alternativa descartada:** Omitir preselección, usar el modo comparativo MI + RFECV + permutation importance, mantener el umbral 0,90 o eliminar pares manualmente sin criterio supervisado.
+
+**Por qué la descartamos:** La regresión logística es sensible a variables irrelevantes y correlacionadas; el usuario pidió un conjunto más compacto. El umbral 0,70 detectó tres pares relevantes y la importancia L1 aportó una regla reproducible para elegir cuál conservar, sin eliminar grupos One-Hot completos durante la deduplicación.
+
+**Conclusión:** Para futuros tablones destinados a modelos lineales, ejecutar RFECV supervisado, agrupar derivados por madre, revisar correlación absoluta y documentar cada eliminación antes de persistir el dataset reducido.
+
+---

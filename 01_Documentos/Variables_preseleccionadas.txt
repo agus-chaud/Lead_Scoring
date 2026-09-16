@@ -1,0 +1,40 @@
+visitas_total_missing
+tiempo_en_site_total_yj_mm
+paginas_vistas_visita_yj_mm
+score_actividad_mm
+score_actividad_missing
+score_perfil_mm
+origen_Landing Page Submission
+origen_Lead Import
+fuente_Direct Traffic
+fuente_Google
+fuente_Organic Search
+fuente_Otros
+no_enviar_email_Yes
+ult_actividad_Converted to Lead
+ult_actividad_Email Bounced
+ult_actividad_Email Link Clicked
+ult_actividad_Email Opened
+ult_actividad_Otros
+ult_actividad_Page Visited on Website
+ult_actividad_SMS Sent
+ambito_Business Administration
+ambito_Desconocido
+ambito_E-Business
+ambito_E-COMMERCE
+ambito_Healthcare Management
+ambito_Hospitality Management
+ambito_Human Resource Management
+ambito_IT Projects Management
+ambito_International Business
+ambito_Operations Management
+ambito_Retail Management
+ambito_Rural and Agribusiness
+ambito_Select
+ambito_Services Excellence
+ambito_Supply Chain Management
+ocupacion_Desconocido
+ocupacion_Housewife
+ocupacion_Student
+ocupacion_Working Professional
+descarga_lm_Yes

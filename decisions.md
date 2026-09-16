@@ -40,4 +40,6 @@ Por qué se tomó cada decisión, el código ya explica qué se hizo.
 
 **DEC-006 — Estrategia de feature engineering.** Se congeló la matriz: One-Hot con `drop="first"` para categóricas, exclusión de `id` y constantes, Yeo-Johnson más MinMaxScaler para comportamiento, e imputación mediana con un indicador estructural no redundante más MinMaxScaler para scores. **Por qué:** preservar interpretabilidad en regresión logística, llevar numéricas a 0–1 y evitar multicolinealidad perfecta. **Regla:** conservar solo versiones finales, no escalar dummies ni flags, eliminar indicadores duplicados y reutilizar el preprocesador ajustado sobre train.
 
+**DEC-007 — Preselección supervisada de variables.** Se aplicó RFECV estándar con regresión logística L1 y se redujo de 52 a 43 variables; con umbral de correlación 0,70 se eliminaron `visitas_total_yj_mm`, `origen_Lead Add Form` y `ocupacion_Unemployed`, quedando 40 predictoras. **Por qué:** priorizar un conjunto más compacto para el modelo lineal sin eliminar grupos One-Hot completos ni variables por intuición. **Regla:** repetir RFECV y revisar correlaciones con validación cruzada antes de incorporar nuevos tablones.
+
 ---
