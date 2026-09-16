@@ -1,0 +1,190 @@
+{
+  "tipo_proyecto": "clasificacion_binaria",
+  "dataset": {
+    "ruta": "C:\\Users\\Dell\\Agus\\Master Agentic DS\\Lead_Scoring\\02_datos\\03_Entrenamiento\\05_train_tablon_preseleccion.pkl",
+    "muestra_filas": 5088,
+    "filas_busqueda_cv": 4070,
+    "proporcion_positiva": 0.37480345911949686,
+    "validacion_externa_reservada": "C:\\Users\\Dell\\Agus\\Master Agentic DS\\Lead_Scoring\\02_datos\\02_Validacion\\validation.pkl"
+  },
+  "algoritmo": "LogisticRegression",
+  "parametros": {
+    "C": 14.528246637516036,
+    "penalty": "l2",
+    "solver": "saga",
+    "max_iter": 5000,
+    "random_state": 42
+  },
+  "cv": {
+    "tipo": "StratifiedKFold",
+    "folds": 5,
+    "random_state": 42,
+    "metrica_principal": "roc_auc"
+  },
+  "metricas_cv": {
+    "roc_auc_mean": 0.8919044091597155,
+    "roc_auc_std": 0.013578812711855895,
+    "recall_mean": 0.7350819672131148,
+    "precision_mean": 0.7809936183025087,
+    "f1_mean": 0.7570626734844417,
+    "accuracy_mean": 0.8230958230958232
+  },
+  "interpretabilidad": {
+    "coeficientes": [
+      {
+        "variable": "score_actividad_mm",
+        "coeficiente": 8.265706074707575,
+        "abs_coeficiente": 8.265706074707575
+      },
+      {
+        "variable": "tiempo_en_site_total_yj_mm",
+        "coeficiente": 4.686541200861235,
+        "abs_coeficiente": 4.686541200861235
+      },
+      {
+        "variable": "ocupacion_Housewife",
+        "coeficiente": 4.13064775615193,
+        "abs_coeficiente": 4.13064775615193
+      },
+      {
+        "variable": "ult_actividad_SMS Sent",
+        "coeficiente": 3.3111857097827273,
+        "abs_coeficiente": 3.3111857097827273
+      },
+      {
+        "variable": "score_perfil_mm",
+        "coeficiente": 2.902972281325001,
+        "abs_coeficiente": 2.902972281325001
+      },
+      {
+        "variable": "ocupacion_Working Professional",
+        "coeficiente": 2.218297445018418,
+        "abs_coeficiente": 2.218297445018418
+      },
+      {
+        "variable": "ult_actividad_Otros",
+        "coeficiente": 2.176946260037759,
+        "abs_coeficiente": 2.176946260037759
+      },
+      {
+        "variable": "visitas_total_missing",
+        "coeficiente": -2.0651789935424794,
+        "abs_coeficiente": 2.0651789935424794
+      },
+      {
+        "variable": "ult_actividad_Email Opened",
+        "coeficiente": 1.9962203241361385,
+        "abs_coeficiente": 1.9962203241361385
+      },
+      {
+        "variable": "paginas_vistas_visita_yj_mm",
+        "coeficiente": -1.8975753329462592,
+        "abs_coeficiente": 1.8975753329462592
+      },
+      {
+        "variable": "fuente_Direct Traffic",
+        "coeficiente": -1.638056349191549,
+        "abs_coeficiente": 1.638056349191549
+      },
+      {
+        "variable": "ambito_Desconocido",
+        "coeficiente": -1.5941852498461124,
+        "abs_coeficiente": 1.5941852498461124
+      },
+      {
+        "variable": "ult_actividad_Email Link Clicked",
+        "coeficiente": 1.5923595630920455,
+        "abs_coeficiente": 1.5923595630920455
+      },
+      {
+        "variable": "origen_Lead Import",
+        "coeficiente": -1.4966951089588567,
+        "abs_coeficiente": 1.4966951089588567
+      },
+      {
+        "variable": "fuente_Google",
+        "coeficiente": -1.4933212388022574,
+        "abs_coeficiente": 1.4933212388022574
+      }
+    ],
+    "permutation_importance": [
+      {
+        "variable": "ult_actividad_SMS Sent",
+        "importancia_permutacion": 0.1543560044782508,
+        "std_permutacion": 0.008199312744207243
+      },
+      {
+        "variable": "tiempo_en_site_total_yj_mm",
+        "importancia_permutacion": 0.15434880140933185,
+        "std_permutacion": 0.010482764987570531
+      },
+      {
+        "variable": "ult_actividad_Email Opened",
+        "importancia_permutacion": 0.06097150877539589,
+        "std_permutacion": 0.005837990232795119
+      },
+      {
+        "variable": "fuente_Direct Traffic",
+        "importancia_permutacion": 0.03995254206592248,
+        "std_permutacion": 0.004166848785129528
+      },
+      {
+        "variable": "score_actividad_mm",
+        "importancia_permutacion": 0.03725880009219924,
+        "std_permutacion": 0.006979466759720406
+      },
+      {
+        "variable": "fuente_Google",
+        "importancia_permutacion": 0.03231667160591385,
+        "std_permutacion": 0.005356365652909919
+      },
+      {
+        "variable": "origen_Landing Page Submission",
+        "importancia_permutacion": 0.027112145609009174,
+        "std_permutacion": 0.0032561494896760717
+      },
+      {
+        "variable": "ambito_Desconocido",
+        "importancia_permutacion": 0.0261706016003161,
+        "std_permutacion": 0.004953250086939506
+      },
+      {
+        "variable": "ocupacion_Working Professional",
+        "importancia_permutacion": 0.02005108004873386,
+        "std_permutacion": 0.004189533431869523
+      },
+      {
+        "variable": "ocupacion_Desconocido",
+        "importancia_permutacion": 0.016928652573347792,
+        "std_permutacion": 0.0020967576994963674
+      },
+      {
+        "variable": "ult_actividad_Otros",
+        "importancia_permutacion": 0.016008306167473386,
+        "std_permutacion": 0.0026821101257779164
+      },
+      {
+        "variable": "fuente_Organic Search",
+        "importancia_permutacion": 0.015249102703414608,
+        "std_permutacion": 0.00222187168506803
+      },
+      {
+        "variable": "score_perfil_mm",
+        "importancia_permutacion": 0.014622024103526633,
+        "std_permutacion": 0.0026803211772438657
+      },
+      {
+        "variable": "paginas_vistas_visita_yj_mm",
+        "importancia_permutacion": 0.01303138068425037,
+        "std_permutacion": 0.001973681013698951
+      },
+      {
+        "variable": "ambito_Select",
+        "importancia_permutacion": 0.00913616681484405,
+        "std_permutacion": 0.002309664080383926
+      }
+    ]
+  },
+  "graficos": "C:\\Users\\Dell\\Agus\\Master Agentic DS\\Lead_Scoring\\06_resultados\\Modelizacion\\curvas_modelo.png",
+  "nota": "Métricas calculadas por validación cruzada sobre la muestra de entrenamiento; validation.pkl se evaluará en una fase posterior."
+}
