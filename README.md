@@ -1,132 +1,66 @@
 # Lead Scoring
 
-Modelo de priorización de leads comerciales a partir de datos de comportamiento y perfil, para predecir la probabilidad de compra.
+Lead Scoring es un sistema para **ordenar leads comerciales según su probabilidad de compra**. Ayuda al equipo comercial a decidir a quién contactar primero.
 
-> Registro de decisiones técnicas: [`decisions.md`](decisions.md) (índice) y [`decisions_detalle.md`](decisions_detalle.md) (detalle completo).
+> Las decisiones técnicas están documentadas en [`decisions.md`](decisions.md) y [`decisions_detalle.md`](decisions_detalle.md).
 
-## Hallazgos clave
+## ¿Qué problema resuelve?
 
-- La variable objetivo `compra` tiene **37,5 % de positivos**: nos compra el 37% de los posibles clientes
-- `score_actividad` y `score_perfil` faltan en **45,96 % de los leads**: falta el dato porque el 45% son usuarios nuevos (sin actividad previa ni perfil creado)
-- La adquisición está concentrada en cuatro canales (`Google`, `Direct Traffic`, `Chat`, `Organic Search`) más `Otros`.
+Sin un criterio objetivo, todos los leads se tratan igual. Eso hace que el equipo comercial gaste tiempo en contactos con baja probabilidad mientras puede capaz se le escapan oportunidades valiosas.
 
+## ¿Cómo funciona el proceso de Lead Scoring?
 
-## Problema
+1. **Captación:** una persona llega desde un canal como Google, Direct Traffic, Chat u Organic Search.
+2. **Comportamiento:** se observan sus visitas, páginas vistas, tiempo en el sitio y  ¿ltima actividad.
+3. **Perfil:** se incorporan datos como ocupación,  ámbito de interés y scores de actividad/perfil cuando están disponibles.
+4. **Conversión histórica:** cada registro indica si terminó en `compra`. Esa variable es el objetivo que el modelo aprende a predecir.
+5. **Priorización:** el modelo combina las señales y estima una probabilidad de compra. El equipo puede ordenar la cartera de leads de mayor a menor prioridad.
+6. **Acción comercial:** ventas decide el contacto y la estrategia. El score es una ayuda para asignar recursos, no una decisión automática sobre el cliente.
 
-Sin un criterio de priorización, el equipo comercial dedicaría el mismo esfuerzo a leads con baja y alta probabilidad de compra, provocando que se pierdan clientes.
+## ¿Cómo impacta en el negocio?
 
-## Fases del scoring de leads
+- **Mejor uso del tiempo comercial:** se contactan primero los leads con mayor potencial.
+- **Más oportunidades capturadas:** se reduce el riesgo de que un lead valioso quede sin seguimiento.
+- **Criterio consistente:** las prioridades se basan en datos y no solo en intuición individual.
+- **Explicabilidad:** la regresión logística permite explicar qué señales empujan la probabilidad hacia arriba o hacia abajo.
+- **Medición:** el desempeño puede monitorearse con ROC AUC, recall, precisión y otras métricas antes de llevar el modelo a producción.
 
-1. **Captación**: el lead ingresa por un canal (`fuente`: Google, Direct Traffic, Chat, Organic Search, u otros ).
-2. **Comportamiento en el sitio**: se registran `visitas_total`, `paginas_vistas_visita`, `tiempo_en_site_total` y `ult_actividad`.
-3. **Scoring de marketing**: una vez que el lead acumula actividad suficiente, se le asignan `score_actividad` y `score_perfil`; los leads nuevos aún no tienen ese puntaje, de ahí el faltante estructural.
-4. **Conversión**: el lead termina o no en `compra`, que es la variable a predecir.
+## Estado actual del proyecto
 
+El flujo completó importación, calidad de datos, EDA, transformación, preselección de variables y la primera modelización.
 
-## Objetivo
+- Target: `compra`, clasificación binaria.
+- Positivos: **37,48 %**.
+- Balanceo: **no se aplica** porque la proporción no es extrema.
+- Predictoras finales: **40**.
+- Modelo candidato: regresión logística interpretable.
+- Configuración: `C=14.5282`, `penalty="l2"`, `solver="saga"`, `max_iter=5000`.
+- ROC AUC medio en validación cruzada: **0,8919**.
+- Validación externa reservada: `02_datos/02_Validacion/validation.pkl`.
 
-Identificar qué variables de comportamiento y perfil se asocian con la conversión, dejando un tablón limpio y explorado listo para selección de variables y modelado predictivo.
+## Decisiones técnicas resumidas
 
-## Enfoque técnico
+1. `Leads.csv` se mantuvo como fuente  única.
+2. Se separaron entrenamiento y validación con `random_state=42`.
+3. Se preservaron faltantes estructurales y se imputaron variables según la matriz aprobada.
+4. Se aplicaron One-Hot Encoding, Yeo-Johnson y MinMaxScaler para preparar la regresión logística.
+5. RFECV redujo 52 predictoras a 43; la revisión de correlación con umbral 0,70 dejó 40.
+6. Se omitió el balanceo de clases y se reservó `validation.pkl` para la evaluación externa.
+7. Se congeló la configuración logística por su mejor ROC AUC y su interpretabilidad comercial.
 
-1. Importar `Leads.csv` como fuente única, sin merges ni concats.
-2. Dividir en train/validación 70/30 de forma reproducible (`random_state=42`).
-3. Tipar y limpiar el tablón de train: imputar categóricos como `Desconocido`, imputar `visitas_total`/`paginas_vistas_visita` con la mediana más un indicador de missingness, preservar los `NaN` estructurales de los scores, unificar `google` → `Google`, y recortar 5 outliers extremos.
-4. Explorar el tablón limpio por tipo de variable (numéricas, categóricas, cardinalidad, texto, fechas), agrupando categorías minoritarias como `Otros`.
-5. Documentar hallazgos, decisiones y alertas en informes markdown.
-6. Pendiente: selección de variables, análisis bivariante contra `compra` y modelado.
+## Organización del proyecto
 
-## Resultados principales
+- `01_Documentos/`: diseños y listas de variables aprobadas.
+- `02_datos/`: datos originales, entrenamiento, validación y tablones intermedios.
+- `03_notebooks/`: notebooks de importación, calidad, EDA, transformación, preselección y modelización.
+- `05_modelos/`: espacio para modelos y preprocesadores de producción.
+- `06_resultados/`: informes, rankings, configuraciones y gráficos.
+- `07_despliegue/`: espacio reservado para batch, API o aplicación.
+- `decisions.md` y `decisions_detalle.md`: registro de decisiones técnicas.
 
-| Área analizada | Hallazgo | Interpretación |
-|---|---|---|
-| Balance de clases | `compra` tiene 37,5 % de positivos | Desbalance moderado; a monitorear en el modelado, sin requerir técnicas extremas |
-| Scores de actividad/perfil | 45,96 % de faltantes en `score_actividad` y `score_perfil` | Faltante estructural de usuarios nuevos, no error de captura — no se imputa |
-| Faltantes de comportamiento | 92 filas sin `visitas_total`/`paginas_vistas_visita`, 63 con `compra=1` | Eliminarlas o ponerlas en cero sesgaría el modelo hacia leads sin conversión |
-| Outliers de comportamiento | 5 filas con `visitas_total > 30` o `paginas_vistas_visita > 20` | Cola aislada y extrema; se recortó con umbral explícito, no por regla estadística automática |
-| Canales de adquisición | `fuente` concentrada en Google, Direct Traffic, Chat, Organic Search | El resto se agrupó como `Otros` para no fragmentar la lectura |
-| Variables constantes | `conociste_revista`, `conociste_periodico`, `conociste_youtube` son constantes | Se conservan en el EDA; su eliminación queda para la fase de selección de variables |
+## Próximos pasos
 
-## Estructura del proyecto
-
-```text
-.
-├── 01_Documentos/
-│   └── PlantillaTransformaciones.xlsx  # plantilla de transformaciones aplicadas
-├── 02_datos/
-│   ├── 01_Originales/
-│   │   └── Leads.csv                   # fuente única, sin procesar
-│   ├── 02_Validacion/
-│   │   └── validation.pkl              # 30% de validación, separado en la importación
-│   ├── 03_Entrenamiento/
-│   │   ├── 01_train_tablon_integrado.pkl  # train tras el split 70/30
-│   │   ├── 02_train_tablon_calidad.pkl    # train tras limpieza de calidad
-│   │   └── 03_train_tablon_eda.pkl        # train tras el EDA
-│   └── 04_Caches/                      # cachés intermedias
-├── 03_notebooks/
-│   ├── 01_Importacion_Datos.ipynb      # importación y split train/validación
-│   ├── 02_Calidad_Datos.ipynb          # limpieza y validación de calidad
-│   └── 03_EDA.ipynb                    # análisis exploratorio univariante
-├── 04_scripts/                         # reservado para scripts reutilizables
-├── 05_modelos/                         # reservado para modelos entrenados
-├── 06_resultados/
-│   ├── Calidad_Datos/
-│   │   ├── informe_calidad_datos.md    # informe de calidad de datos
-│   │   └── transformaciones.json       # especificación de transformaciones aplicadas
-│   └── EDA/
-│       └── EDA_report.md               # informe de EDA
-├── 07_despliegue/                      # reservado para despliegue del modelo
-├── 99_otros/                           # archivos varios
-├── decisions.md                        # índice de decisiones técnicas
-└── decisions_detalle.md                # detalle completo de decisiones técnicas
-```
-
-## Cómo reproducir el proyecto
-
-### Requisitos
-
-- Python 3.13.
-- Jupyter Notebook o JupyterLab.
-- `pandas`, `numpy`, `matplotlib`, `seaborn`, `scikit-learn`.
-
-El repositorio no incluye un `requirements.txt`; instalar las librerías directamente como se indica abajo.
-
-### Instalación del entorno
-
-Desde la raíz del proyecto:
-
-```bash
-python -m venv .venv
-```
-
-Activación en Windows PowerShell:
-
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
-Activación en macOS o Linux:
-
-```bash
-source .venv/bin/activate
-```
-
-Instalación de las librerías:
-
-```bash
-python -m pip install pandas numpy matplotlib seaborn scikit-learn jupyter
-```
-
-### Ejecución
-
-1. Colocá `Leads.csv` en `02_datos/01_Originales/`.
-2. Abrí la carpeta raíz del proyecto en VS Code o iniciá Jupyter desde ahí.
-3. Ejecutá los notebooks en este orden, desde el principio y con el kernel del `.venv` activo:
-   - `03_notebooks/01_Importacion_Datos.ipynb`
-   - `03_notebooks/02_Calidad_Datos.ipynb`
-   - `03_notebooks/03_EDA.ipynb`
-4. Los tablones intermedios se generan en `02_datos/03_Entrenamiento/` y la validación en `02_datos/02_Validacion/validation.pkl`. Los informes se generan en `06_resultados/Calidad_Datos/` y `06_resultados/EDA/`.
-
-## Limitaciones y próximos pasos
-
-El EDA hecho hasta ahora es univariante; falta el análisis bivariante contra `compra` que el propio informe recomienda como siguiente paso.  Las variables constantes o casi constantes (`conociste_revista`, `conociste_periodico`, `conociste_youtube`) todavía no se descartaron: eso queda para la fase de selección de variables. Tampoco hay diccionario de datos formal ni `requirements.txt` en el repositorio, y el modelo de scoring en sí (carpetas `05_modelos/` y `07_despliegue/`) todavía no se implementó.
+1. Entrenar el modelo de producción con la configuración congelada.
+2. Evaluarlo sobre `validation.pkl`, sin usar ese conjunto durante la selección.
+3. Comparar la familia de  árboles como alternativa de rendimiento.
+4. Preparar los pipelines y el despliegue del scoring.
