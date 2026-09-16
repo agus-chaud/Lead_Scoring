@@ -73,3 +73,17 @@
 **Conclusión:** Aplicar recortes de filas solo con umbrales de negocio explícitos, documentados y aprobados; no confundir outlier estadístico con error.
 
 ---
+
+## DEC-006: Estrategia consolidada de feature engineering
+
+**Área:** feature-engineering | **Fase:** transformación | **Fecha:** 2026-09-16 | **Estado:** Vigente
+
+**Decisión:** Congelar una matriz para clasificación binaria con regresión logística: aplicar `OneHotEncoder(drop="first")` a las variables categóricas y binarias de origen objeto; excluir `id` y las tres columnas constantes; aplicar Yeo-Johnson seguido de MinMaxScaler a `visitas_total`, `tiempo_en_site_total` y `paginas_vistas_visita`; y para los scores, imputar por mediana, conservar solo `score_actividad_missing` como indicador estructural (es idéntico a `score_perfil_missing`) y escalar los valores imputados con MinMaxScaler. Mantener `compra` sin transformación, no escalar dummies ni indicadores binarios y excluir `paginas_vistas_visita_missing` por ser idéntico a `visitas_total_missing`.
+
+**Alternativa descartada:** StandardScaler, conservar numéricas sin transformación, codificación ordinal para nominales, incluir `id` o mantener columnas constantes.
+
+**Por qué la descartamos:** MinMaxScaler deja las numéricas en rango 0–1, coherente con las dummies y adecuado para la regresión logística priorizada. La codificación ordinal inventaría un orden; One-Hot sin `drop="first"` introduciría multicolinealidad perfecta. Los NaN de scores son estructurales, de modo que imputarlos sin indicador perdería señal de negocio.
+
+**Conclusión:** Para tablones futuros con este esquema, ajustar los transformadores solo en train, conservar únicamente las representaciones finales y validar filas, target, NaN, columnas intermedias, unicidad de nombres y multicolinealidad binaria.
+
+---

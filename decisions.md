@@ -15,6 +15,7 @@ Por qué se tomó cada decisión, el código ya explica qué se hizo.
 | DEC-003 | eda | Explorar por tipo sin eliminar variables automáticamente |
 | DEC-004 | importacion | Dividir train/validación 70/30 reproduciblemente |
 | DEC-005 | calidad-datos | Recortar extremos con umbrales explícitos aprobados |
+| DEC-006 | feature-engineering | Congelar la estrategia de transformaciones para regresión logística |
 
 ---
 
@@ -36,5 +37,7 @@ Por qué se tomó cada decisión, el código ya explica qué se hizo.
 **DEC-004 — División entrenamiento-validación.** Se utilizó `train_test_split` 70/30 con `random_state=42`, sin IDs compartidos. **Por qué:** `id` era única y no había grupos repetidos. **Regla:** mantener una validación independiente y reproducible.
 
 **DEC-005 — Recorte de extremos de comportamiento.** Se eliminaron 5 filas con `visitas_total > 30` o `paginas_vistas_visita > 20`. **Por qué:** eran valores extremadamente aislados según el análisis descendente. **Regla:** recortar solo con umbrales explícitos, documentados y aprobados.
+
+**DEC-006 — Estrategia de feature engineering.** Se congeló la matriz: One-Hot con `drop="first"` para categóricas, exclusión de `id` y constantes, Yeo-Johnson más MinMaxScaler para comportamiento, e imputación mediana con un indicador estructural no redundante más MinMaxScaler para scores. **Por qué:** preservar interpretabilidad en regresión logística, llevar numéricas a 0–1 y evitar multicolinealidad perfecta. **Regla:** conservar solo versiones finales, no escalar dummies ni flags, eliminar indicadores duplicados y reutilizar el preprocesador ajustado sobre train.
 
 ---
