@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "fitted_on": "02_datos/03_Entrenamiento/01_train_tablon_integrado.pkl",
+  "steps": [
+    {
+      "op": "impute",
+      "column": "ocupacion",
+      "strategy": "constant",
+      "value": "Desconocido"
+    },
+    {
+      "op": "impute",
+      "column": "ambito",
+      "strategy": "constant",
+      "value": "Desconocido"
+    },
+    {
+      "op": "impute",
+      "column": "ult_actividad",
+      "strategy": "constant",
+      "value": "Desconocido"
+    },
+    {
+      "op": "impute",
+      "column": "fuente",
+      "strategy": "constant",
+      "value": "Desconocido"
+    },
+    {
+      "op": "impute",
+      "column": "visitas_total",
+      "strategy": "median",
+      "value": 3.0
+    },
+    {
+      "op": "missing_indicator",
+      "column": "visitas_total_missing",
+      "source_column": "visitas_total"
+    },
+    {
+      "op": "impute",
+      "column": "paginas_vistas_visita",
+      "strategy": "median",
+      "value": 2.0
+    },
+    {
+      "op": "missing_indicator",
+      "column": "paginas_vistas_visita_missing",
+      "source_column": "paginas_vistas_visita"
+    },
+    {
+      "op": "unify_categories",
+      "column": "fuente",
+      "mapping": {
+        "google": "Google"
+      }
+    },
+    {
+      "op": "drop_row",
+      "predicate": "visitas_total > 30 OR paginas_vistas_visita > 20",
+      "rows_removed": 5,
+      "ids_removed": [
+        602958,
+        637257,
+        607494,
+        597579,
+        607470
+      ]
+    }
+  ]
+}
