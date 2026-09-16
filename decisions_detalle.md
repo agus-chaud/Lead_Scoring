@@ -101,3 +101,32 @@
 **Conclusión:** Para futuros tablones destinados a modelos lineales, ejecutar RFECV supervisado, agrupar derivados por madre, revisar correlación absoluta y documentar cada eliminación antes de persistir el dataset reducido.
 
 ---
+
+---
+
+## DEC-008: No aplicar balanceo y fijar entrada de modelización
+
+**Área:** modelado | **Fase:** balanceo/modelización | **Fecha:** 2026-09-16 | **Estado:** Vigente
+
+**Decisión:** No aplicar técnicas de balanceo de clases porque la clase positiva `compra` representa aproximadamente el 37% del tablón, una proporción suficiente para iniciar la modelización sin sobremuestreo ni submuestreo. El agente de modelización utilizará `02_datos/03_Entrenamiento/05_train_tablon_preseleccion.pkl` como dataframe de entrenamiento.
+
+**Alternativa descartada:** Aplicar SMOTE, sobremuestreo aleatorio, submuestreo o ponderación de clases antes de evaluar los modelos.
+
+**Por qué la descartamos:** Con una prevalencia cercana al 37%, el problema no presenta un desbalance extremo. Se prioriza medir el comportamiento real de la clase positiva y evitar introducir observaciones sintéticas antes de comparar modelos. La decisión podrá revisarse si las métricas de recall, precisión o la matriz de confusión muestran una limitación relevante.
+
+**Conclusión:** Saltar la fase `ds-08-balancear-clases` y continuar con `ds-09-modelizar` usando el tablón preseleccionado, sin modificar el dataset de entrada.
+
+
+---
+
+## DEC-009: Configuración candidata de modelización
+
+**Área:** modelado | **Fase:** modelización | **Fecha:** 2026-09-16 | **Estado:** Vigente
+
+**Decisión:** Congelar `LogisticRegression` con `C=14.528246637516036`, `penalty="l2"`, `solver="saga"` y `max_iter=5000`. La selección se realizó por ROC AUC medio (0,8919) con `StratifiedKFold` de 5 folds sobre una muestra estratificada del 80% (5.088 filas). Recall, precisión, F1 y accuracy se conservaron como métricas complementarias.
+
+**Alternativa descartada:** Las restantes configuraciones de `C` y penalización del ranking, y la evaluación inmediata sobre `validation.pkl`.
+
+**Por qué la descartamos:** La configuración congelada obtuvo el mejor ROC AUC medio, con desviación estándar 0,0136. La validación externa debe permanecer intacta para medir generalización en una fase posterior.
+
+**Conclusión:** El agente posterior de entrenamiento de producción usará `06_resultados/Modelizacion/config_mejor_modelo.json` y evaluará el modelo final sobre `02_datos/02_Validacion/validation.pkl`.

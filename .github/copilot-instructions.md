@@ -2,6 +2,10 @@
 
 **Dataframe actual**: `../02_datos/03_Entrenamiento/05_train_tablon_preseleccion.pkl`
 
+**Entrada del agente modelizador**: `../02_datos/03_Entrenamiento/05_train_tablon_preseleccion.pkl`
+
+**Balanceo de clases**: No se aplica; `compra` tiene aproximadamente 37% de positivos.
+
 **Variables seleccionadas**: `../01_Documentos/Variables_preseleccionadas.txt`
 
 **Estructura del dataframe**:
@@ -55,3 +59,5 @@ Data columns (total 41 columns):
 dtypes: float64(40), int64(1)
 memory usage: 2.0 MB
 ```
+
+**Modelo candidato actual**: `../06_resultados/Modelizacion/config_mejor_modelo.json`

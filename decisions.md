@@ -43,3 +43,8 @@ Por qué se tomó cada decisión, el código ya explica qué se hizo.
 **DEC-007 — Preselección supervisada de variables.** Se aplicó RFECV estándar con regresión logística L1 y se redujo de 52 a 43 variables; con umbral de correlación 0,70 se eliminaron `visitas_total_yj_mm`, `origen_Lead Add Form` y `ocupacion_Unemployed`, quedando 40 predictoras. **Por qué:** priorizar un conjunto más compacto para el modelo lineal sin eliminar grupos One-Hot completos ni variables por intuición. **Regla:** repetir RFECV y revisar correlaciones con validación cruzada antes de incorporar nuevos tablones.
 
 ---
+
+**DEC-008 — No aplicar balanceo y fijar entrada de modelización.** Dado que `compra` presenta una proporción positiva aproximada del 37%, no se ejecutará la skill de balanceo de clases. El agente de modelización trabajará con `02_datos/03_Entrenamiento/05_train_tablon_preseleccion.pkl`, generado por la preselección supervisada.
+
+
+**DEC-009 ? Configuración candidata de modelización.** Se congeló `LogisticRegression` con `C=14.528246637516036`, `penalty="l2"`, `solver="saga"` y `max_iter=5000`, seleccionada por ROC AUC medio 0,8919 con 5-fold StratifiedKFold sobre una muestra estratificada del 80%. Recall, precisión, F1 y accuracy quedan como métricas complementarias. La validación externa se realizará posteriormente sobre `02_datos/02_Validacion/validation.pkl`. **Regla:** usar la configuración persistida para el entrenamiento de producción y no usar la validación externa durante la selección.
