@@ -1,9 +1,9 @@
-﻿## ESTADO ACTUAL DEL PROYECTO
+## ESTADO ACTUAL DEL PROYECTO
 
-**Fase completada**: A_08_Limpieza
+**Fase completada**: A_09_Pipelines
 
-**Notebook finalista**: `03_notebooks/08_Preproduccion.ipynb`
+**Scripts de producción**: `07_despliegue/01_reentrenamiento.py`, `07_despliegue/02_produccion_scoring.py`
 
-**Manifiesto para A_09**: `07_despliegue/pre-produccion/00_manifiesto_preproduccion.json`
+**Artefacto**: `07_despliegue/artefacto_pipeline.pkl` (se genera al ejecutar 01)
 
-**Siguiente paso**: correr `/ds-11-generar-pipelines` (A_09)
+**Siguiente paso**: el usuario ejecuta `01_reentrenamiento.py`, luego `02_produccion_scoring.py`. Para servirlo: `/ds-12-desplegar-batch` (A_10, ejecución programada) o `/ds-13-desplegar-api` (A_11, API FastAPI)

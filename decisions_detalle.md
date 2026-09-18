@@ -164,3 +164,16 @@
 **Código afectado:** `requirements.txt`, `07_despliegue/pre-produccion/01_reglas_categorias.json`, `03_notebooks/08_Preproduccion.ipynb`, `07_despliegue/pre-produccion/00_resumen_limpieza.md`.
 
 ---
+## DEC-012: Búsqueda de reentrenamiento basada en evidencia disponible
+
+**Área:** despliegue | **Fase:** pipelines | **Fecha:** 2026-09-18 | **Estado:** Vigente
+
+**Decisión:** El script de reentrenamiento busca hiperparámetros de `LogisticRegression` con penalizaciones L1/L2 y valores de `C` que cubren el rango observado, usando `RandomizedSearchCV` con ROC AUC.
+
+**Alternativa descartada:** Agregar familias de árboles o boosting sin ranking previo.
+
+**Por qué la descartamos:** El ranking persistido solo contiene configuraciones de regresión logística. Inventar familias cambiaría el alcance experimental sin evidencia comparable.
+
+**Conclusión:** El reentrenamiento explora el candidato validado; una comparación de nuevas familias requiere una fase explícita de modelización.
+
+---

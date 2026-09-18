@@ -1,4 +1,4 @@
-# Lead Scoring
+﻿# Lead Scoring
 
 Lead Scoring es un sistema para **ordenar leads comerciales según su probabilidad de compra**. Ayuda al equipo comercial a decidir a quién contactar primero.
 
@@ -6,61 +6,82 @@ Lead Scoring es un sistema para **ordenar leads comerciales según su probabilid
 
 ## ¿Qué problema resuelve?
 
-Sin un criterio objetivo, todos los leads se tratan igual. Eso hace que el equipo comercial gaste tiempo en contactos con baja probabilidad mientras puede capaz se le escapan oportunidades valiosas.
+Sin un criterio objetivo, todos los leads parecen igual de importantes. Eso hace que el equipo comercial invierta tiempo en contactos con baja probabilidad de compra mientras oportunidades valiosas pueden quedar sin seguimiento.
 
-## ¿Cómo funciona el proceso de Lead Scoring?
+## ¿Cómo funciona?
 
-1. **Captación:** una persona llega desde un canal como Google, Direct Traffic, Chat u Organic Search.
-2. **Comportamiento:** se observan sus visitas, páginas vistas, tiempo en el sitio y  ¿ltima actividad.
-3. **Perfil:** se incorporan datos como ocupación,  ámbito de interés y scores de actividad/perfil cuando están disponibles.
-4. **Conversión histórica:** cada registro indica si terminó en `compra`. Esa variable es el objetivo que el modelo aprende a predecir.
-5. **Priorización:** el modelo combina las señales y estima una probabilidad de compra. El equipo puede ordenar la cartera de leads de mayor a menor prioridad.
-6. **Acción comercial:** ventas decide el contacto y la estrategia. El score es una ayuda para asignar recursos, no una decisión automática sobre el cliente.
+1. **Captación y perfil:** incorpora canal de adquisición, ocupación, ámbito de interés y señales de perfil.
+2. **Comportamiento:** considera visitas, páginas vistas, tiempo en el sitio y última actividad.
+3. **Preparación:** trata faltantes, normaliza categorías, controla extremos y transforma las variables.
+4. **Scoring:** el pipeline estima la probabilidad de compra y produce una predicción operativa.
+5. **Acción comercial:** ventas prioriza la cartera según el score; el modelo apoya la decisión, no reemplaza el criterio comercial.
 
-## ¿Cómo impacta en el negocio?
+## Impacto de negocio
 
-- **Mejor uso del tiempo comercial:** se contactan primero los leads con mayor potencial.
-- **Más oportunidades capturadas:** se reduce el riesgo de que un lead valioso quede sin seguimiento.
-- **Criterio consistente:** las prioridades se basan en datos y no solo en intuición individual.
-- **Explicabilidad:** la regresión logística permite explicar qué señales empujan la probabilidad hacia arriba o hacia abajo.
-- **Medición:** el desempeño puede monitorearse con ROC AUC, recall, precisión y otras métricas antes de llevar el modelo a producción.
+- **Mejor asignación del esfuerzo comercial:** permite contactar primero a los leads con mayor potencial. Esto seguro mejore la tasa de ventas concretadas.
+- **Priorización consistente:** no se depende más de la intuicion
+- **Explicabilidad:** la regresión logística permite identificar las señales que impulsan o reducen el score.
+- **Trazabilidad:** los leads con valores extremos se exportan con su motivo de rechazo, sin desaparecer silenciosamente del proceso.
 
-## Estado actual del proyecto
-
-El flujo completó importación, calidad de datos, EDA, transformación, preselección de variables y la primera modelización.
+## Modelo y evaluación
 
 - Target: `compra`, clasificación binaria.
-- Positivos: **37,48 %**.
-- Balanceo: **no se aplica** porque la proporción no es extrema.
-- Predictoras finales: **40**.
-- Modelo candidato: regresión logística interpretable.
-- Configuración: `C=14.5282`, `penalty="l2"`, `solver="saga"`, `max_iter=5000`.
+- Positivos: **37,48 %**; no se aplica balanceo porque la proporción no es extrema.
+- Predictoras finales: **40**, seleccionadas con RFECV y análisis de correlación.
+- Única familia evaluada: **Logistic Regression**, priorizada por su explicabilidad para el equipo comercial.
+- Configuración candidata: `C=14.5282`, `penalty="l2"`, `solver="saga"`, `max_iter=5000`.
 - ROC AUC medio en validación cruzada: **0,8919**.
 - Validación externa reservada: `02_datos/02_Validacion/validation.pkl`.
 
-## Decisiones técnicas resumidas
+## Pipeline productivo
 
-1. `Leads.csv` se mantuvo como fuente  única.
-2. Se separaron entrenamiento y validación con `random_state=42`.
-3. Se preservaron faltantes estructurales y se imputaron variables según la matriz aprobada.
-4. Se aplicaron One-Hot Encoding, Yeo-Johnson y MinMaxScaler para preparar la regresión logística.
-5. RFECV redujo 52 predictoras a 43; la revisión de correlación con umbral 0,70 dejó 40.
-6. Se omitió el balanceo de clases y se reservó `validation.pkl` para la evaluación externa.
-7. Se congeló la configuración logística por su mejor ROC AUC y su interpretabilidad comercial.
+El flujo de producción es:
+
+```text
+CSV crudo → control de extremos → transformaciones → Logistic Regression → score y predicción
+```
+
+- `07_despliegue/01_reentrenamiento.py` reconstruye el pipeline, busca la mejor configuración logística y serializa el artefacto.
+- `07_despliegue/02_produccion_scoring.py` carga el artefacto y genera un CSV con `id`, `score` y `prediccion`.
+- Los leads excluidos por extremos se escriben en un CSV separado con `motivo_rechazo`.
+
+## Cómo ejecutar
+
+1. Instalá las dependencias:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. Reentrená y generá el artefacto del pipeline:
+
+   ```bash
+   python 07_despliegue/01_reentrenamiento.py
+   ```
+
+3. Generá scores para leads nuevos:
+
+   ```bash
+   python 07_despliegue/02_produccion_scoring.py --input ruta/al/archivo.csv --output ruta/al/scoring.csv
+   ```
 
 ## Organización del proyecto
 
-- `01_Documentos/`: diseños y listas de variables aprobadas.
+- `01_Documentos/`: diseño de transformaciones y variables aprobadas.
 - `02_datos/`: datos originales, entrenamiento, validación y tablones intermedios.
-- `03_notebooks/`: notebooks de importación, calidad, EDA, transformación, preselección y modelización.
-- `05_modelos/`: espacio para modelos y preprocesadores de producción.
+- `03_notebooks/08_Preproduccion.ipynb`: flujo consolidado de preproducción.
+- `05_modelos/`: preprocesadores y modelos del proyecto.
 - `06_resultados/`: informes, rankings, configuraciones y gráficos.
-- `07_despliegue/`: espacio reservado para batch, API o aplicación.
+- `07_despliegue/pre-produccion/00_manifiesto_preproduccion.json`: contrato del pipeline.
+- `07_despliegue/01_reentrenamiento.py`: reentrenamiento y serialización del pipeline.
+- `07_despliegue/02_produccion_scoring.py`: scoring batch de datos nuevos.
+- `requirements.txt`: dependencias fijadas para reproducibilidad.
 - `decisions.md` y `decisions_detalle.md`: registro de decisiones técnicas.
 
 ## Próximos pasos
 
-1. Entrenar el modelo de producción con la configuración congelada.
-2. Evaluarlo sobre `validation.pkl`, sin usar ese conjunto durante la selección.
-3. Comparar la familia de  árboles como alternativa de rendimiento.
-4. Preparar los pipelines y el despliegue del scoring.
+1. Ejecutar el reentrenamiento y el scoring en el entorno fijado.
+2. Evaluar el modelo contra `validation.pkl` sin utilizarlo durante la selección.
+3. Definir el umbral comercial según capacidad de contacto y costo de los errores.
+4. Elegir entre despliegue batch (`/ds-12-desplegar-batch`) o API REST (`/ds-13-desplegar-api`).
+5. Considerar familias de árboles como una mejora futura mediante una fase explícita de modelización y comparación.
