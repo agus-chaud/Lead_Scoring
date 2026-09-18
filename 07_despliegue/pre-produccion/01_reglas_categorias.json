@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "fitted_on": "02_datos/03_Entrenamiento/02_train_tablon_calidad.pkl",
+  "applies_after": ["quality_imputation", "source_normalization"],
+  "fuente": {
+    "keep": ["Google", "Direct Traffic", "Chat", "Organic Search"],
+    "fallback": "Otros"
+  },
+  "ult_actividad": {
+    "rare_categories": [
+      "Form Submitted on Website",
+      "Desconocido",
+      "Unreachable",
+      "Unsubscribed",
+      "Had a Phone Conversation",
+      "Approached upfront",
+      "View in browser link Clicked",
+      "Email Marked Spam",
+      "Visited Booth in Tradeshow"
+    ],
+    "fallback": "Otros",
+    "selection_rule": "frequency < 0.02 on the fitted training dataset"
+  }
+}

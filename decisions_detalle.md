@@ -1,4 +1,4 @@
-﻿# Registro de Decisiones Técnicas — detalle completo
+# Registro de Decisiones Técnicas — detalle completo
 
 **Este es el archivo de detalle.** `decisions.md` contiene el índice y los resúmenes cortos.
 
@@ -146,5 +146,21 @@
 **Conclusión:** En consolidaciones estáticas, reutilizar artefactos congelados como fuente de verdad y documentar explícitamente cualquier paso cuya implementación no esté presente en el notebook fuente.
 
 **Código afectado:** `03_notebooks/08_Preproduccion.ipynb`, `07_despliegue/pre-produccion/00_resumen_limpieza.md`.
+
+---
+
+## DEC-011: Fijar entorno y persistir reglas categóricas de inferencia
+
+**Área:** despliegue | **Fase:** preproducción | **Fecha:** 2026-09-18 | **Estado:** Vigente
+
+**Decisión:** Incorporar `requirements.txt` con `scikit-learn==1.9.1`, `numpy==2.5.3`, `scipy==1.18.1`, `pandas==3.0.5` y `joblib==1.6.0`; persistir la consolidación categórica en `07_despliegue/pre-produccion/01_reglas_categorias.json`; y cargar esas reglas en `08_Preproduccion.ipynb` antes de usar el preprocesador.
+
+**Alternativa descartada:** Ignorar la advertencia de versiones y recalcular las categorías raras de `ult_actividad` en cada corrida o registro de inferencia.
+
+**Por qué la descartamos:** Cargar artefactos serializados en una versión distinta de scikit-learn no está soportado y puede alterar o interrumpir el scoring. Además, una categoría es rara respecto de la distribución de entrenamiento, no respecto de un lead individual; recalcularla en inferencia cambiaría el contrato de features.
+
+**Conclusión:** El entorno debe instalar las versiones fijadas y las reglas categóricas ajustadas sobre train deben viajar como artefacto versionado junto al preprocesador y el modelo.
+
+**Código afectado:** `requirements.txt`, `07_despliegue/pre-produccion/01_reglas_categorias.json`, `03_notebooks/08_Preproduccion.ipynb`, `07_despliegue/pre-produccion/00_resumen_limpieza.md`.
 
 ---
