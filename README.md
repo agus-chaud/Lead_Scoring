@@ -18,10 +18,10 @@ Sin un criterio objetivo, todos los leads parecen igual de importantes. Eso hace
 
 ## Impacto de negocio
 
-- **Mejor asignación del esfuerzo comercial:** permite contactar primero a los leads con mayor potencial. Esto seguro mejore la tasa de ventas concretadas.
-- **Priorización consistente:** no se depende más de la intuicion
+- **Mejor asignación del esfuerzo comercial:** permite priorizar los leads con mayor potencial y medir si mejora el contacto efectivo y la conversión.
+- **Priorización consistente:** reduce la dependencia de la intuición individual para ordenar la cartera.
 - **Explicabilidad:** la regresión logística permite identificar las señales que impulsan o reducen el score.
-- **Trazabilidad:** los leads con valores extremos se exportan con su motivo de rechazo, sin desaparecer silenciosamente del proceso.
+- **Trazabilidad:** los leads con valores extremos quedan identificados con su motivo de rechazo, sin desaparecer silenciosamente del proceso.
 
 ## Modelo y evaluación
 
@@ -33,6 +33,11 @@ Sin un criterio objetivo, todos los leads parecen igual de importantes. Eso hace
 - ROC AUC medio en validación cruzada: **0,8919**.
 - Validación externa reservada: `02_datos/02_Validacion/validation.pkl`.
 
+## Cómo interpretar el resultado
+
+- `score`: probabilidad estimada de compra para un lead. Es una señal continua para ordenar prioridades, no una garantía de conversión.
+- `prediccion`: resultado técnico de aplicar el umbral actual de `0,5` al score.
+
 ## Pipeline productivo
 
 El flujo de producción es:
@@ -43,9 +48,10 @@ CSV crudo → control de extremos → transformaciones → Logistic Regression �
 
 - `07_despliegue/01_reentrenamiento.py` reconstruye el pipeline, busca la mejor configuración logística y serializa el artefacto.
 - `07_despliegue/02_produccion_scoring.py` carga el artefacto y genera un CSV con `id`, `score` y `prediccion`.
-- Los leads excluidos por extremos se escriben en un CSV separado con `motivo_rechazo`.
+- `07_despliegue/api/` expone el mismo motor mediante FastAPI con `POST /predict`, `GET /health` y `GET /debug`.
+- Los leads excluidos por extremos se escriben en un CSV separado en batch; la API los rechaza con HTTP 422.
 
-## Cómo ejecutar
+## Cómo ejecutar batch
 
 1. Instalá las dependencias:
 
@@ -65,6 +71,62 @@ CSV crudo → control de extremos → transformaciones → Logistic Regression �
    python 07_despliegue/02_produccion_scoring.py --input ruta/al/archivo.csv --output ruta/al/scoring.csv
    ```
 
+## Camino rápido: usar la API
+
+Desde `07_despliegue/api/`, con el entorno del proyecto activo:
+
+```bash
+uvicorn api.main:app --host 127.0.0.1 --port 8000 --app-dir ..
+```
+
+Verificá que el servicio esté disponible:
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+Enviá siempre una lista JSON, incluso para un solo lead:
+
+```json
+[
+  {
+    "id": 660737,
+    "origen": "API",
+    "fuente": "Chat",
+    "no_enviar_email": "No",
+    "visitas_total": 0.0,
+    "tiempo_en_site_total": 0,
+    "paginas_vistas_visita": 0.0,
+    "ult_actividad": "Page Visited on Website",
+    "ambito": "Select",
+    "ocupacion": "Unemployed",
+    "score_actividad": 15.0,
+    "score_perfil": 15.0,
+    "descarga_lm": "No"
+  }
+]
+```
+
+La respuesta conserva una fila por lead aceptado:
+
+```json
+[
+  {
+    "id": 660737,
+    "score": 0.15312413831374566,
+    "prediccion": 0
+  }
+]
+```
+
+La documentación interactiva está disponible en `http://127.0.0.1:8000/docs`.
+
+## Qué falta para medir impacto real
+
+- Medir conversión, contacto efectivo y tiempo comercial por segmentos de score después de ponerlo operativo.
+- Monitorear drift en variables de entrada, categorías nuevas y distribución de scores.
+- Revisar la calibración y el umbral `0,5` con evidencia de negocio antes de definir reglas comerciales de priorización.
+
 ## Organización del proyecto
 
 - `01_Documentos/`: diseño de transformaciones y variables aprobadas.
@@ -75,5 +137,6 @@ CSV crudo → control de extremos → transformaciones → Logistic Regression �
 - `07_despliegue/pre-produccion/00_manifiesto_preproduccion.json`: contrato del pipeline.
 - `07_despliegue/01_reentrenamiento.py`: reentrenamiento y serialización del pipeline.
 - `07_despliegue/02_produccion_scoring.py`: scoring batch de datos nuevos.
+- `07_despliegue/api/`: API FastAPI, contrato, payload de prueba y cliente de ejemplo.
 - `requirements.txt`: dependencias fijadas para reproducibilidad.
 - `decisions.md` y `decisions_detalle.md`: registro de decisiones técnicas.
