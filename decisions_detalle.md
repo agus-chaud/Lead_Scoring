@@ -177,3 +177,17 @@
 **Conclusión:** El reentrenamiento explora el candidato validado; una comparación de nuevas familias requiere una fase explícita de modelización.
 
 ---
+
+## DEC-013: Exponer scoring mediante API REST
+
+**Área:** despliegue | **Fase:** API | **Fecha:** 2026-09-18 | **Estado:** Vigente
+
+**Decisión:** Exponer el motor de inferencia con FastAPI mediante `POST /predict`. El endpoint recibe siempre una lista JSON de registros crudos y devuelve una lista con `id`, `score` y `prediccion`. No se agrega una regla HOT/WARM/COLD.
+
+**Alternativa descartada:** Definir segmentación comercial fija sobre el score o devolver solo una etiqueta sin probabilidad.
+
+**Por qué la descartamos:** No hay umbrales comerciales aprobados ni evidencia de capacidad operativa que justifique HOT/WARM/COLD. Mantener el score entrega la señal continua para que Comercial defina su priorización, mientras que `prediccion` conserva el resultado del umbral técnico de 0,5.
+
+**Conclusión:** El contrato público es simple y trazable. Los registros con `visitas_total > 30` o `paginas_vistas_visita > 20` devuelven HTTP 422, en vez de ser filtrados silenciosamente por el motor. Cualquier regla comercial futura debe documentar sus umbrales, dueño y evidencia.
+
+**Código afectado:** `07_despliegue/api/main.py`, `07_despliegue/api/schemas.py`, `07_despliegue/api/scoring.py`, `07_despliegue/api/test_payload.json`.

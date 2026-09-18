@@ -82,6 +82,5 @@ CSV crudo → control de extremos → transformaciones → Logistic Regression �
 
 1. Ejecutar el reentrenamiento y el scoring en el entorno fijado.
 2. Evaluar el modelo contra `validation.pkl` sin utilizarlo durante la selección.
-3. Definir el umbral comercial según capacidad de contacto y costo de los errores.
-4. Elegir entre despliegue batch (`/ds-12-desplegar-batch`) o API REST (`/ds-13-desplegar-api`).
-5. Considerar familias de árboles como una mejora futura mediante una fase explícita de modelización y comparación.
+3. Definir el umbral de corte según capacidad de contacto y costo de los errores.
+4. Construir API REST (`/ds-13-desplegar-api`).
