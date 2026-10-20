@@ -4,7 +4,7 @@
 
 - Dataframe: `df`
 - Dimensiones: 6360 filas × 23 columnas
-- Fecha: 2026-09-16
+- Fecha: 2026-10-20
 - Variables numéricas discretas: 5
 - Variables numéricas continuas: 4
 - Variables categóricas/booleanas: 14
@@ -39,6 +39,15 @@ No existen columnas de texto libre.
 
 No existen columnas de fecha.
 
+## Bivariante contra `compra`
+
+- Asociación con `compra` (V de Cramér / IV): `ocupacion` (0,42 / 0,94), `ult_actividad` (0,39 / 0,78), `origen` (0,29 / 0,44), `ambito` (0,26 / 0,38), `fuente` (0,25 / 0,28). `descarga_lm` casi no aporta (IV 0,003).
+- Numéricas (AUC univariado): `tiempo_en_site_total` 0,68, `score_perfil` 0,63, `score_actividad` 0,61, `visitas_total` 0,55 y `paginas_vistas_visita` 0,52.
+- `Desconocido` en `ocupacion` (14%) y `ambito` (10%) compra mucho menos que la tasa global (37,5%): la ausencia de perfil es una señal.
+- La ausencia de scores no es una señal (37,4% con dato, 37,6% sin dato); las 92 filas con `visitas_total` imputado compran 69%.
+- Redundancia: `visitas_total` con `paginas_vistas_visita` (Spearman 0,84); `fuente` con `origen` (V 0,65) y con `descarga_lm` (0,67); `no_enviar_email` con `ult_actividad` (0,65).
+- Posible leakage en `ult_actividad` (IV > 0,5) y `ocupacion`: quitarlas baja el ROC AUC de CV de 0,8947 a 0,8581 y 0,8799 (0,8376 sin ambas). Se mantienen bajo el supuesto de scoring durante el seguimiento (DEC-014).
+
 ## Transformaciones aplicadas
 
 1. En `fuente`, se conservaron las cuatro categorías principales y el resto se agrupó como `Otros`.
@@ -51,12 +60,12 @@ No existen columnas de fecha.
 - Las variables de comportamiento presentan colas derechas.
 - La ausencia de scores tiene significado de negocio y no debe interpretarse automáticamente como error.
 - Las variables constantes y casi constantes pueden reducirse en la fase de selección de variables.
-- Este EDA es principalmente univariante; el siguiente análisis recomendado es bivariante contra `compra`.
+- El análisis bivariante contra `compra` y la auditoría de leakage (`06_Auditoria_Leakage.ipynb`) están resumidos en la sección anterior y documentados en DEC-014.
 
 ## Estructura final
 
 ```
-<class 'pandas.core.frame.DataFrame'>
+<class 'pandas.DataFrame'>
 Index: 6360 entries, 2954 to 7270
 Data columns (total 23 columns):
  #   Column                         Non-Null Count  Dtype  
@@ -85,5 +94,5 @@ Data columns (total 23 columns):
  21  visitas_total_missing          6360 non-null   int8   
  22  paginas_vistas_visita_missing  6360 non-null   int8   
 dtypes: float64(4), int64(3), int8(2), object(14)
-memory usage: 1.1+ MB
+memory usage: 1.3+ MB
 ```
