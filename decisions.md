@@ -23,6 +23,8 @@ Por qué se tomó cada decisión, el código ya explica qué se hizo.
 | DEC-011 | despliegue | Fijar entorno y persistir reglas categóricas de inferencia |
 | DEC-012 | despliegue | Reentrenar únicamente la familia logística disponible |
 | DEC-013 | despliegue | Exponer scoring mediante API REST con contrato explícito |
+| DEC-014 | seleccion-variables | Mantener `ult_actividad` y `ocupacion` tras auditar posible leakage con el bivariante |
+| DEC-015 | feature-engineering | Agrupar categorías raras de `ocupacion` y `ambito` (propuesta) |
 
 ---
 
@@ -30,6 +32,7 @@ Por qué se tomó cada decisión, el código ya explica qué se hizo.
 
 | Decisión | Área |
 |---|---|
+| Aplicar DEC-015 en `04_Transformacion` y repetir la cadena 04 → 05 → 07 → 08 (regenera `preprocesador.joblib`, `01_reglas_categorias.json` y la API) | feature-engineering |
 
 ---
 
@@ -64,3 +67,7 @@ Por qué se tomó cada decisión, el código ya explica qué se hizo.
 **DEC-012 — Búsqueda de reentrenamiento.** Se reentrenará con LogisticRegression y búsqueda aleatoria de C y penalización L1/L2. **Por qué:** anking_modelos.csv contiene solo configuraciones logísticas; no se inventan familias sin evidencia comparativa. **Regla:** incorporar nuevas familias únicamente después de evaluarlas y persistir su ranking.
 
 **DEC-013 — API REST de scoring.** Se expone `POST /predict` en FastAPI con entrada en lista JSON y salida `id`, `score` y `prediccion`; no se incorpora segmentación HOT/WARM/COLD. **Por qué:** se prioriza un contrato simple, trazable y alineado con el motor productivo. **Regla:** rechazar con HTTP 422 los registros que superen los extremos aprobados, para evitar que una fila quede sin respuesta silenciosamente.
+
+**DEC-014 — Lectura bivariante y auditoría de leakage.** Se incorporó al EDA el análisis bivariante contra `compra` y se auditaron `ult_actividad` (IV 0,78) y `ocupacion` (IV 0,94), que superan el IV de 0,5 usado como alerta de leakage. Quitar `ult_actividad` baja el ROC AUC de CV de 0,8947 a 0,8581, quitar `ocupacion` a 0,8799 y quitar ambas a 0,8376. Se mantienen ambas variables bajo el supuesto de scoring durante el seguimiento. **Por qué:** `ocupacion` y `SMS Sent` conservan su señal dentro de estratos de engagement y de origen, pero esos controles no distinguen señal legítima de fuga; sin fecha ni acceso a negocio el riesgo no puede descartarse. **Regla:** ante variables con IV o AUC extremo, medir la dependencia del modelo (ablación), documentar el supuesto de momento de scoring y reportar el AUC conservador junto al AUC base.
+
+**DEC-015 — Categorías raras en ocupacion y ambito (propuesta).** Se propone agrupar bajo `Otros` las categorías con frecuencia menor al 1% en `ocupacion` y `ambito`. **Por qué:** `Housewife` (7 filas, 100% de compra) entra al modelo con un coeficiente inestable, y el criterio ya se aplicó a `fuente` y `ult_actividad` (DEC-003). **Regla:** aplicar el mismo umbral de frecuencia mínima a todas las nominales y persistirlo en `01_reglas_categorias.json`; ejecutar junto con la repetición de la cadena 04 → 05 → 07 → 08.

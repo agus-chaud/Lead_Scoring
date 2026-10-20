@@ -191,3 +191,37 @@
 **Conclusión:** El contrato público es simple y trazable. Los registros con `visitas_total > 30` o `paginas_vistas_visita > 20` devuelven HTTP 422, en vez de ser filtrados silenciosamente por el motor. Cualquier regla comercial futura debe documentar sus umbrales, dueño y evidencia.
 
 **Código afectado:** `07_despliegue/api/main.py`, `07_despliegue/api/schemas.py`, `07_despliegue/api/scoring.py`, `07_despliegue/api/test_payload.json`.
+
+---
+
+## DEC-014: Lectura bivariante y auditoría de leakage
+
+**Área:** seleccion-variables | **Fase:** EDA bivariante | **Fecha:** 2026-10-20 | **Estado:** Vigente
+
+**Decisión:** Incorporar al EDA el análisis bivariante contra `compra` (tasa y lift con IC de Wilson, V de Cramér, IV/WoE, Mann-Whitney/AUC univariado y redundancia por Spearman y V de Cramér) como evidencia de apoyo a la preselección, sin eliminar variables solo por un resultado univariante. Auditar `ult_actividad` (IV 0,78) y `ocupacion` (IV 0,94), que superan el IV de 0,5 usado como alerta, mediante ablación en train (CV de 5 folds × 3 repeticiones, configuración de DEC-009, sin usar `validation.pkl`) y controles por engagement y origen. Fijar el supuesto de diseño: el lead se puntúa durante el seguimiento, con la información acumulada hasta ese momento. Con ese supuesto se mantienen ambas variables y el pipeline de DEC-006 a DEC-013 no cambia; el riesgo se documenta y se reportan dos referencias de rendimiento: ROC AUC de 0,8947 con las 40 variables y 0,8376 sin ambas como cota conservadora.
+
+**Alternativa descartada:** Excluir `ult_actividad` o `ocupacion` por precaución, o puntuar en la captura del lead.
+
+**Por qué la descartamos:** No hay evidencia de que sean una fuga y excluirlas tiene un costo medible: quitar `ult_actividad` baja el AUC de 0,8947 a 0,8581 (-0,037), quitar `ocupacion` a 0,8799 (-0,015) y quitar ambas a 0,8376 (-0,057); en los 15 folds pareados todos los escenarios rinden peor. `Working Professional` conserva entre 76% y 96% de compra en cada cuartil de tiempo en el sitio y entre 89% y 95% en cada origen; `SMS Sent` supera a `Email Opened` en los cuatro cuartiles y en `API` y `Landing Page Submission`, de modo que no se explican por engagement ni por canal. Puntuar en la captura dejaría sin `ult_actividad`, comportamiento ni scores: el modelo bajaría a un AUC de 0,7722 y contradiría el diseño vigente.
+
+**Riesgo residual:** Los controles son iguales para una señal legítima que para una fuga. `SMS Sent` (62% de compra) es compatible con un seguimiento posterior a la calificación o al cierre, y el dataset no tiene fecha ni acceso a negocio para descartarlo. Si se obtiene el orden temporal de los eventos y `SMS Sent` resulta posterior al cierre, excluir `ult_actividad` y repetir la cadena 04 → 05 → 07 → 08 (AUC esperado cercano a 0,858).
+
+**Conclusión:** Ante variables con IV o AUC extremo, medir la dependencia del modelo mediante ablación, documentar el supuesto de momento de scoring y reportar el AUC conservador junto al base. Una validación aleatoria no detecta leakage porque la fuga está en train y en validación.
+
+**Código afectado:** `03_notebooks/03_EDA.ipynb`, `03_notebooks/06_Auditoria_Leakage.ipynb`, `06_resultados/EDA/EDA_report.md`.
+
+---
+
+## DEC-015: Categorías raras en ocupacion y ambito
+
+**Área:** feature-engineering | **Fase:** transformación | **Fecha:** 2026-10-20 | **Estado:** Propuesta
+
+**Decisión:** Agrupar bajo `Otros` las categorías con frecuencia individual menor al 1% en `ocupacion` (`Other`, `Housewife`, `Businessman`) y `ambito` (`Services Excellence`, `E-Business`, `Rural and Agribusiness`), y persistir la regla en `01_reglas_categorias.json`.
+
+**Alternativa descartada:** Mantener las categorías raras como dummies propias.
+
+**Por qué la descartamos:** `Housewife` tiene 7 filas con 100% de compra (WoE 3,2) y entra a las 40 variables finales: la regresión logística le asigna un coeficiente inestable. El criterio de frecuencia mínima ya se aplicó a `fuente` y `ult_actividad` (DEC-003).
+
+**Conclusión:** Aplicar el mismo umbral a todas las nominales. Requiere regenerar `preprocesador.joblib` y repetir la cadena 04 → 05 → 07 → 08, por lo que se ejecuta como un único cambio y queda pendiente hasta entonces.
+
+**Código afectado:** `03_notebooks/04_Transformacion.ipynb`, `07_despliegue/pre-produccion/01_reglas_categorias.json`, `07_despliegue/api/`.
