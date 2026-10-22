@@ -89,6 +89,11 @@ async def _request(method: str, path: str, **kwargs: Any) -> Any:
     return response.json()
 
 
+def _build_record(**campos: Any) -> dict[str, Any]:
+    """Keep only the fields the caller informed; missing ones stay missing for the API."""
+    return {k: v for k, v in campos.items() if v is not None}
+
+
 @mcp.tool()
 async def score_lead(
     id: int = 0,
@@ -111,27 +116,108 @@ async def score_lead(
     Devuelve `score` (probabilidad 0-1), `prediccion` (1 si score >= umbral) y `umbral`.
     Consultá el recurso leadscoring://variables para el significado de cada campo.
     """
-    registro = {
-        k: v
-        for k, v in {
-            "id": id,
-            "origen": origen,
-            "fuente": fuente,
-            "no_enviar_email": no_enviar_email,
-            "visitas_total": visitas_total,
-            "tiempo_en_site_total": tiempo_en_site_total,
-            "paginas_vistas_visita": paginas_vistas_visita,
-            "ult_actividad": ult_actividad,
-            "ambito": ambito,
-            "ocupacion": ocupacion,
-            "score_actividad": score_actividad,
-            "score_perfil": score_perfil,
-            "descarga_lm": descarga_lm,
-        }.items()
-        if v is not None
-    }
+    registro = _build_record(
+        id=id, origen=origen, fuente=fuente, no_enviar_email=no_enviar_email,
+        visitas_total=visitas_total, tiempo_en_site_total=tiempo_en_site_total,
+        paginas_vistas_visita=paginas_vistas_visita, ult_actividad=ult_actividad,
+        ambito=ambito, ocupacion=ocupacion, score_actividad=score_actividad,
+        score_perfil=score_perfil, descarga_lm=descarga_lm,
+    )
     resultados = await _request("POST", "/predict", json=[registro])
     return {**resultados[0], "umbral": UMBRAL}
+
+
+COMO_LEERLO = (
+    "Cada factor compara al lead con un lead promedio (el de `score_referencia`): sube o baja "
+    "sus chances (odds) de compra respecto de uno típico. x2 las duplica y x0,5 las reduce a la "
+    "mitad. El score final sale de combinar todos los factores multiplicándolos, no de sumar "
+    "puntos porcentuales."
+)
+
+
+def _numero(valor: float, decimales: int = 1) -> str:
+    return f"{valor:.{decimales}f}".replace(".", ",")
+
+
+def _frase_factor(factor: dict[str, Any]) -> str:
+    multiplicador = _numero(factor["multiplicador_odds"], 2)
+    verbo = {"sube": "aumenta las chances", "baja": "reduce las chances"}.get(
+        factor["efecto"], "no cambia las chances"
+    )  # always relative to the average lead
+    valor = "sin dato" if factor["valor"] is None else factor["valor"]
+    return f"{factor['variable']} = {valor} {verbo} (x{multiplicador})"
+
+
+def _avisos(banderas: dict[str, list[str]]) -> list[str]:
+    avisos = []
+    if banderas["datos_faltantes"]:
+        avisos.append(
+            f"Faltan datos de: {', '.join(banderas['datos_faltantes'])}. "
+            "El modelo los trata como valores desconocidos, así que el resultado es menos confiable."
+        )
+    if banderas["variables_sensibles_leakage"]:
+        avisos.append(
+            f"{', '.join(banderas['variables_sensibles_leakage'])} está entre las variables más "
+            "influyentes y no se descarta que refleje información posterior al contacto comercial "
+            "(posible leakage, DEC-014)."
+        )
+    return avisos
+
+
+@mcp.tool()
+async def explain_score(
+    id: int = 0,
+    origen: str | None = None,
+    fuente: str | None = None,
+    no_enviar_email: str | None = None,
+    visitas_total: float | None = None,
+    tiempo_en_site_total: float | None = None,
+    paginas_vistas_visita: float | None = None,
+    ult_actividad: str | None = None,
+    ambito: str | None = None,
+    ocupacion: str | None = None,
+    score_actividad: float | None = None,
+    score_perfil: float | None = None,
+    descarga_lm: str | None = None,
+    top: int = 5,
+) -> dict[str, Any]:
+    """Explica CÓMO se llega al score de UN lead: qué variables lo suben o lo bajan y cuánto.
+
+    Usa los mismos campos que `score_lead` más `top` (cuántos factores mostrar, por defecto 5).
+    La explicación es exacta (el modelo es una regresión logística), no una aproximación.
+    Devuelve el `resumen` en lenguaje natural, los `factores_principales` ordenados por impacto,
+    `avisos` (datos faltantes, posible leakage) y `como_leerlo` para interpretar los multiplicadores.
+    """
+    registro = _build_record(
+        id=id, origen=origen, fuente=fuente, no_enviar_email=no_enviar_email,
+        visitas_total=visitas_total, tiempo_en_site_total=tiempo_en_site_total,
+        paginas_vistas_visita=paginas_vistas_visita, ult_actividad=ult_actividad,
+        ambito=ambito, ocupacion=ocupacion, score_actividad=score_actividad,
+        score_perfil=score_perfil, descarga_lm=descarga_lm,
+    )
+    explicacion = (await _request("POST", "/explain", json=[registro]))[0]
+    principales = explicacion["factores"][: max(1, top)]
+
+    conclusion = "se predice compra" if explicacion["prediccion"] else "no se predice compra"
+    resumen = (
+        f"Probabilidad de compra estimada: {_numero(explicacion['score'] * 100)}% "
+        f"(umbral {_numero(UMBRAL * 100, 0)}%: {conclusion}). Un lead promedio tiene "
+        f"{_numero(explicacion['score_referencia'] * 100)}%. Frente a ese lead promedio, lo que más pesa: "
+        + "; ".join(_frase_factor(f) for f in principales[:3])
+        + "."
+    )
+    return {
+        "id": explicacion["id"],
+        "score": explicacion["score"],
+        "prediccion": explicacion["prediccion"],
+        "umbral": UMBRAL,
+        "score_referencia": explicacion["score_referencia"],
+        "resumen": resumen,
+        "factores_principales": principales,
+        "variables_no_mostradas": len(explicacion["factores"]) - len(principales),
+        "avisos": _avisos(explicacion["banderas"]),
+        "como_leerlo": COMO_LEERLO,
+    }
 
 
 @mcp.tool()

@@ -1,0 +1,19 @@
+{
+  "artefacto_sha256": "9bf1fb0fc72e04ac7199cc4c146e56e01b08e0c89cb62eddfbcd1b63d0c80521",
+  "n_filas": 9082,
+  "score_medio": 0.3762466095555843,
+  "aporte_promedio": {
+    "origen": -0.38439375863877867,
+    "fuente": -1.3457431977188432,
+    "no_enviar_email": -0.08377533641404519,
+    "visitas_total": 0.2692060878419952,
+    "tiempo_en_site_total": 2.2104081943242524,
+    "paginas_vistas_visita": -0.6980713383414946,
+    "ult_actividad": 1.8403757412468198,
+    "ambito": -0.3694961288278248,
+    "ocupacion": -0.9930920495736584,
+    "score_actividad": 5.375637431042645,
+    "score_perfil": 1.236504130166302,
+    "descarga_lm": -0.07043849799269326
+  }
+}

@@ -7,8 +7,8 @@ from pathlib import Path
 import pandas as pd
 from fastapi import FastAPI
 
-from api.schemas import RegistroEntrada, ScoringSalida
-from api.scoring import scoring_df
+from api.schemas import ExplicacionSalida, RegistroEntrada, ScoringSalida
+from api.scoring import explicar_df, scoring_df
 
 BASE_DIR = Path(__file__).resolve().parent
 PAYLOAD_PATH = BASE_DIR / "test_payload.json"
@@ -51,3 +51,9 @@ def predict(registros: list[RegistroEntrada]) -> list[ScoringSalida]:
     df = pd.DataFrame([registro.model_dump(by_alias=True) for registro in registros])
     resultado = scoring_df(df)
     return [ScoringSalida(**fila) for fila in resultado.to_dict(orient="records")]
+
+
+@app.post("/explain", response_model=list[ExplicacionSalida])
+def explain(registros: list[RegistroEntrada]) -> list[ExplicacionSalida]:
+    df = pd.DataFrame([registro.model_dump(by_alias=True) for registro in registros])
+    return [ExplicacionSalida(**e) for e in explicar_df(df)]

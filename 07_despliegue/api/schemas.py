@@ -1,6 +1,6 @@
 ﻿from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -27,3 +27,27 @@ class ScoringSalida(BaseModel):
     id: int
     score: float
     prediccion: int
+
+
+class Factor(BaseModel):
+    variable: str
+    valor: str | float | int | None
+    contribucion_logit: float
+    efecto: Literal["sube", "baja", "neutro"]
+    multiplicador_odds: float
+
+
+class Banderas(BaseModel):
+    datos_faltantes: list[str]
+    variables_sensibles_leakage: list[str]
+
+
+class ExplicacionSalida(BaseModel):
+    id: int
+    score: float
+    prediccion: int
+    logit: float
+    logit_referencia: float
+    score_referencia: float
+    factores: list[Factor]
+    banderas: Banderas

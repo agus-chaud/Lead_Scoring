@@ -125,7 +125,7 @@ La documentación interactiva está disponible en `http://127.0.0.1:8000/docs`.
 
 `07_despliegue/mcp_server/` expone la API como servidor MCP. Un usuario sin conocimientos técnicos pide el score en lenguaje natural y Claude llama a la API. El servidor no contiene lógica de modelo: cada score sale de la API.
 
-Herramientas: `score_lead` (un lead), `score_leads` (lote) y `check_api_health`. El recurso `leadscoring://variables` documenta los campos, sus límites y la advertencia de leakage de `ult_actividad` y `ocupacion` (DEC-014).
+Herramientas: `score_lead` (un lead), `score_leads` (lote), `explain_score` (por qué ese score) y `check_api_health`. El recurso `leadscoring://variables` documenta los campos, sus límites y la advertencia de leakage de `ult_actividad` y `ocupacion` (DEC-014).
 
 1. Levantá la API (sección anterior). Usá un entorno con las versiones de `07_despliegue/api/requirements.txt`: con otra versión de scikit-learn `/predict` responde 500.
 2. Instalá las dependencias del MCP: `pip install -r 07_despliegue/mcp_server/requirements.txt`.
@@ -143,7 +143,17 @@ Herramientas: `score_lead` (un lead), `score_leads` (lote) y `check_api_health`.
 }
 ```
 
-Tests: `cd 07_despliegue/mcp_server && python -m pytest`.
+### Explicar un score
+
+`explain_score` usa el endpoint `POST /explain` de la API. Descompone el score en el aporte de cada variable **frente a un lead promedio** (el de los 9.082 leads con que se ajustó el modelo, 30,5% de score). La descomposición es exacta porque el modelo es una regresión logística. Un factor `x0,11` significa que esa variable reduce las chances de compra a un 11% de las de un lead típico.
+
+La referencia vive en `07_despliegue/api/referencia_explicacion.json`. Si reentrenás el modelo, regenerala desde `07_despliegue/`; mientras no coincida con el modelo, `/explain` falla con un mensaje que lo indica:
+
+```bash
+python -m api.generar_referencia
+```
+
+Tests: `cd 07_despliegue/mcp_server && python -m pytest` (MCP) y `cd 07_despliegue/api && python -m pytest` (API, con el entorno de `api/requirements.txt`; la API necesita además `httpx` para los tests).
 
 ## Qué falta para medir impacto real
 
