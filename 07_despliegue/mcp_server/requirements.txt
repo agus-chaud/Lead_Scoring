@@ -1,0 +1,6 @@
+# mcp 2.x renamed FastMCP to MCPServer; stay on 1.x until the server is migrated.
+mcp==1.30.0
+httpx==0.28.1
+# tests
+pytest==9.1.1
+pytest-asyncio==1.4.0
