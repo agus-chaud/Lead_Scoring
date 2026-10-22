@@ -53,7 +53,7 @@ se trata como dato faltante y el pipeline lo imputa.
 
 ## Advertencia sobre `ult_actividad` y `ocupacion`
 
-Son las dos variables más influyentes y no se descarta que reflejen información
+El rendimiento del modelo depende bastante de ambas y no se descarta que reflejen información
 posterior al contacto comercial (posible leakage, ver DEC-014). La auditoría
 estimó un ROC AUC de 0,8947 con ambas y de 0,8376 sin ellas. Si el lead se
 puntúa antes de que esas variables existan, el score real será menos preciso.
@@ -158,8 +158,8 @@ def _avisos(banderas: dict[str, list[str]]) -> list[str]:
         )
     if banderas["variables_sensibles_leakage"]:
         avisos.append(
-            f"{', '.join(banderas['variables_sensibles_leakage'])} está entre las variables más "
-            "influyentes y no se descarta que refleje información posterior al contacto comercial "
+            f"{', '.join(banderas['variables_sensibles_leakage'])}: el rendimiento del modelo depende "
+            "bastante de esta variable y no se descarta que refleje información posterior al contacto comercial "
             "(posible leakage, DEC-014)."
         )
     return avisos

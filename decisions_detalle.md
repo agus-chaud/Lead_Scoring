@@ -135,7 +135,7 @@
 
 ## DEC-010: Consolidación de preproducción con artefactos congelados
 
-**Área:** despliegue | **Fase:** preproducción | **Fecha:** 2026-09-16 | **Estado:** Vigente
+**Área:** despliegue | **Fase:** preproducción | **Fecha:** 2026-09-16 | **Estado:** Vigente (aclarada por DEC-016: ese contrato es el que ejecuta producción)
 
 **Decisión:** Consolidar `03_notebooks/08_Preproduccion.ipynb` de forma estática a partir de `Leads.csv`, el preprocesador ajustado, la lista de 40 variables finalistas y `config_mejor_modelo.json`. El notebook carga el preprocesador existente, no reconstruye `Pipeline` ni `ColumnTransformer`, y prepara la `LogisticRegression` con `C=14.528246637516036`, `penalty="l2"`, `solver="saga"` y `max_iter=5000`. No utiliza `validation.pkl`.
 

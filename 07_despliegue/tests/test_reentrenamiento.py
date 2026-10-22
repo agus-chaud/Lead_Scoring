@@ -166,3 +166,15 @@ def test_campos_vacios_no_rompen_y_equivalen_a_la_categoria_de_referencia(produc
     )
 
     assert pipeline.predict_proba(vacio)[0, 1] == pytest.approx(pipeline.predict_proba(referencia)[0, 1])
+
+
+def test_un_nulo_da_el_mismo_score_solo_o_dentro_de_un_lote(produccion):
+    """A column of only None arrives as dtype object; the missing flag must still fire."""
+    _, pipeline, _ = produccion
+    lead = {c: None for c in API_FIELDS} | {"fuente": "Chat", "ocupacion": "Student", "tiempo_en_site_total": 120.0}
+    otro = lead | {"score_actividad": 20.0, "score_perfil": 15.0}
+
+    solo = pipeline.predict_proba(pd.DataFrame([lead], columns=API_FIELDS))[0, 1]
+    en_lote = pipeline.predict_proba(pd.DataFrame([lead, otro], columns=API_FIELDS))[0, 1]
+
+    assert solo == pytest.approx(en_lote, abs=1e-12)

@@ -45,6 +45,9 @@ NOMBRES_CANONICOS = {
     "score_values__score_perfil": "score_perfil_mm",
     "score_missing__missingindicator_score_actividad": "score_actividad_missing",
 }
+NUMERICAS = [
+    "visitas_total", "tiempo_en_site_total", "paginas_vistas_visita", "score_actividad", "score_perfil",
+]
 # The 12 inputs of the scoring API: when absent from a frame they are treated as missing.
 CAMPOS_API = [
     "origen", "fuente", "no_enviar_email", "visitas_total", "tiempo_en_site_total",
@@ -75,6 +78,8 @@ def preparar_leads(df, pasos, reglas, columnas_requeridas, imputaciones_extra):
     for campo in CAMPOS_API:
         if campo not in X.columns:
             X[campo] = np.nan
+    for columna in NUMERICAS:  # an all-None column arrives as dtype object and hides its missing values
+        X[columna] = pd.to_numeric(X[columna], errors="coerce")
     for paso in pasos:  # flags first: they must see the original missing values
         if paso["op"] == "missing_indicator":
             X[paso["column"]] = X[paso["source_column"]].isna().astype("int8")

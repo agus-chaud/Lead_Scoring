@@ -28,3 +28,6 @@ Rama: feat/alinear-produccion-notebooks | Entrega: ask-on-risk (sin push sin ped
 - Nota: `02_produccion_scoring.py` no requirió cambios; se agregó test que lo fija.
 - Verificación propia (2026-10-22): 9 tests de producción, 12 de API y 14 de MCP en verde; E2E MCP→API real OK.
 - Risk: items 1 y 3 (se reemplaza el artefacto del modelo desplegado y cambian los valores de score; la forma del contrato de /predict no cambia). Corresponde un verificador independiente al cierre de la feature.
+- Verificador independiente (2026-10-22): 0 bloqueantes; S1,S3,S4,S5,S6 OK; S2 y S7 PARTIAL por advertencias. Corrección única aplicada: A1 (un campo numérico todo-None llegaba como dtype object y el indicador de faltante no se activaba: el score de un lead cambiaba según viniera solo o en lote; ya corregido con `pd.to_numeric` y test) y A3/A4/A5 (textos imprecisos o desactualizados). Artefacto y referencia regenerados; métricas de validación idénticas (el fix no altera el ajuste).
+- Pendiente conocido (pre-existente, fuera de alcance): `POST /predict` con lista vacía lanza KeyError; `visitas_total` negativo se acepta.
+- Espejo Engram: PENDIENTE (mem_save falló con unknown_session).

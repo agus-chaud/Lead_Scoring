@@ -32,10 +32,10 @@ Según el análisis exploratorio, separan mejor a compradores de no compradores 
 
 ## Límites y advertencias
 
-- **Posible leakage.** `ult_actividad` y `ocupacion` son las variables más influyentes y no se descarta que reflejen información posterior al contacto comercial (DEC-014). En la auditoría (validación cruzada) el AUC pasaba de 0,895 a 0,838 al quitar ambas. Si el lead se puntúa antes de que esas variables existan, el score real será menos preciso.
+- **Posible leakage.** El rendimiento del modelo depende bastante de `ult_actividad` y `ocupacion`, y no se descarta que reflejen información posterior al contacto comercial (DEC-014). En la auditoría (validación cruzada) el AUC pasaba de 0,895 a 0,838 al quitar ambas. Si el lead se puntúa antes de que esas variables existan, el score real será menos preciso.
 - **Es correlación, no causa.** Que una variable suba el score no significa que cambiarla haga comprar a ese lead.
 - **Faltantes frecuentes.** Los scores de marketing automation faltan en el 46% de los leads (suelen ser leads nuevos), y la ocupación en el 30%. Con muchos datos vacíos el score es menos confiable.
-- **Campos que nunca faltaron al entrenar.** Origen, aceptación de emails y descarga del material siempre venían completos. Si llegan vacíos, el modelo los trata como la categoría de referencia (origen API, "No"), y el tiempo en el sitio vacío se reemplaza por la mediana. El resultado en esos casos es una estimación sin respaldo en los datos de entrenamiento.
+- **Campos que nunca faltaron al entrenar.** Origen, aceptación de emails y descarga del material siempre venían completos. Si llegan vacíos, el modelo los trata como la categoría de referencia (origen API o Lead Add Form, que codifican igual; "No" en los otros dos), y el tiempo en el sitio vacío se reemplaza por la mediana. El resultado en esos casos es una estimación sin respaldo en los datos de entrenamiento.
 - **El corte 0,5 no está calibrado con evidencia de negocio.** Es un valor convencional. Todavía no se midió qué corte conviene según costo y beneficio del contacto comercial.
 - **Categorías muy raras son inestables.** Por ejemplo, `Housewife` tiene pocos casos (DEC-015 propone agruparlas y sigue pendiente).
 - **Datos de un solo origen.** El modelo aprendió de un único conjunto histórico; si cambia el perfil de los leads, hay que revisarlo y reentrenarlo.

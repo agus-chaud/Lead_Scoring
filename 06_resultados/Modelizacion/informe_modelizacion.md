@@ -53,4 +53,4 @@ Gráficos: `06_resultados/Modelizacion/curvas_modelo.png`.
 
 ## Cierre
 
-Las métricas son de validación cruzada sobre la muestra de entrenamiento. Un agente posterior entrenará el modelo de producción con esta configuración sobre los datos completos y evaluará sobre `validation.pkl`. La familia de árboles queda pendiente.
+Las métricas son de validación cruzada sobre la muestra de entrenamiento. El modelo de producción se entrena con esta configuración sobre el 70% de entrenamiento y se evalúa una sola vez sobre `validation.pkl` (DEC-016). La familia de árboles queda pendiente.
