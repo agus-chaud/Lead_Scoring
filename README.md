@@ -20,7 +20,7 @@ Sin un criterio objetivo, todos los leads parecen igual de importantes. Eso hace
 
 - **Mejor asignación del esfuerzo comercial:** permite priorizar los leads con mayor potencial y medir si mejora el contacto efectivo y la conversión.
 - **Priorización consistente:** reduce la dependencia de la intuición individual para ordenar la cartera.
-- **Explicabilidad:** la regresión logística permite identificar las señales que impulsan o reducen el score.
+- **Explicabilidad:** la regresión logística permite descomponer cada score en el aporte exacto de cada variable frente a un lead promedio (`POST /explain`, DEC-017).
 - **Trazabilidad:** los leads con valores extremos quedan identificados con su motivo de rechazo, sin desaparecer silenciosamente del proceso.
 
 ## Modelo y evaluación
@@ -49,7 +49,7 @@ CSV crudo → control de extremos → calidad y reglas de categorías → prepro
 - `07_despliegue/01_reentrenamiento.py` sigue el contrato de `07_despliegue/pre-produccion/00_manifiesto_preproduccion.json` (DEC-016): reutiliza el preprocesador congelado y las 40 variables finalistas, reentrena solo la regresión logística con el 70 % de los leads y serializa el artefacto.
 - `07_despliegue/03_evaluar_validacion.py` evalúa el artefacto sobre `validation.pkl`. Ejecutalo una sola vez después de reentrenar y no ajustes el modelo a partir del resultado.
 - `07_despliegue/02_produccion_scoring.py` carga el artefacto y genera un CSV con `id`, `score` y `prediccion`.
-- `07_despliegue/api/` expone el mismo motor mediante FastAPI con `POST /predict`, `GET /health` y `GET /debug`.
+- `07_despliegue/api/` expone el mismo motor mediante FastAPI con `POST /predict`, `POST /explain`, `GET /health` y `GET /debug`.
 - Los leads excluidos por extremos se escriben en un CSV separado en batch; la API los rechaza con HTTP 422.
 
 ## Cómo ejecutar batch
@@ -66,7 +66,10 @@ CSV crudo → control de extremos → calidad y reglas de categorías → prepro
    python 07_despliegue/01_reentrenamiento.py
    cp 07_despliegue/artefacto_pipeline.pkl 07_despliegue/api/artefacto_pipeline.pkl
    cd 07_despliegue && python -m api.generar_referencia
+   python 03_evaluar_validacion.py
    ```
+
+   **Después de cada reentrenamiento actualizá a mano las cifras de rendimiento de `07_despliegue/mcp_server/ficha_modelo.md`** (AUC, precisión, recall y top-k) con lo que escribe `06_resultados/Modelizacion/evaluacion_validacion.json`. Esos números no se actualizan solos. El test `07_despliegue/tests/test_evaluacion_y_batch.py` falla si el JSON es de otro artefacto o si la ficha muestra un AUC, una precisión o un recall distintos a los del JSON; si falla tras reentrenar, es el recordatorio de este paso.
 
 3. Generá scores para leads nuevos:
 
@@ -116,7 +119,7 @@ La respuesta conserva una fila por lead aceptado:
 [
   {
     "id": 660737,
-    "score": 0.15312413831374566,
+    "score": 0.14467028562707906,
     "prediccion": 0
   }
 ]
@@ -126,7 +129,7 @@ La documentación interactiva está disponible en `http://127.0.0.1:8000/docs`.
 
 ## Usar el modelo desde Claude (servidor MCP)
 
-`07_despliegue/mcp_server/` expone la API como servidor MCP. Un usuario sin conocimientos técnicos pide el score en lenguaje natural y Claude llama a la API. El servidor no contiene lógica de modelo: cada score sale de la API.
+`07_despliegue/mcp_server/` expone la API como servidor MCP. Un usuario sin conocimientos técnicos pide el score en lenguaje natural y Claude llama a la API. El servidor no contiene lógica de modelo: cada score sale de la API (DEC-018).
 
 Herramientas: `score_lead` (un lead), `score_leads` (lote), `explain_score` (por qué ese score) y `check_api_health`. El recurso `leadscoring://ficha-modelo` (fuente: `07_despliegue/mcp_server/ficha_modelo.md`) explica en lenguaje simple qué hace el modelo, qué tan bien funciona y sus límites. El recurso `leadscoring://variables` documenta los campos, sus límites y la advertencia de leakage de `ult_actividad` y `ocupacion` (DEC-014).
 
@@ -148,7 +151,7 @@ Herramientas: `score_lead` (un lead), `score_leads` (lote), `explain_score` (por
 
 ### Explicar un score
 
-`explain_score` usa el endpoint `POST /explain` de la API. Descompone el score en el aporte de cada variable **frente a un lead promedio** (el promedio de los 6.360 leads de entrenamiento, 29,4% de score). La descomposición es exacta porque el modelo es una regresión logística. Un factor `x0,11` significa que esa variable reduce las chances de compra a un 11% de las de un lead típico.
+`explain_score` usa el endpoint `POST /explain` de la API (DEC-017). Descompone el score en el aporte de cada variable **frente a un lead promedio** (el promedio de los 6.360 leads de entrenamiento, 29,4% de score). La descomposición es exacta porque el modelo es una regresión logística. Un factor `x0,11` significa que esa variable reduce las chances de compra a un 11% de las de un lead típico.
 
 La referencia vive en `07_despliegue/api/referencia_explicacion.json`. Si reentrenás el modelo, regenerala desde `07_despliegue/`; mientras no coincida con el modelo, `/explain` falla con un mensaje que lo indica:
 
@@ -163,6 +166,7 @@ Tests: `cd 07_despliegue/mcp_server && python -m pytest` (MCP) y `cd 07_desplieg
 - Medir conversión, contacto efectivo y tiempo comercial por segmentos de score después de ponerlo operativo.
 - Monitorear drift en variables de entrada, categorías nuevas y distribución de scores.
 - Revisar la calibración y el umbral `0,5` con evidencia de negocio antes de definir reglas comerciales de priorización.
+- Resolver los pendientes técnicos listados en `decisions.md` (DEC-015, defectos de `/predict` con lista vacía y valores negativos, migración a `mcp` 2.x).
 
 ## Organización del proyecto
 
@@ -174,7 +178,8 @@ Tests: `cd 07_despliegue/mcp_server && python -m pytest` (MCP) y `cd 07_desplieg
 - `07_despliegue/pre-produccion/00_manifiesto_preproduccion.json`: contrato del pipeline.
 - `07_despliegue/01_reentrenamiento.py`: reentrenamiento y serialización del pipeline.
 - `07_despliegue/02_produccion_scoring.py`: scoring batch de datos nuevos.
-- `07_despliegue/api/`: API FastAPI, contrato, payload de prueba y cliente de ejemplo.
+- `07_despliegue/api/`: API FastAPI, contrato, payload de prueba, cliente de ejemplo, referencia de explicaciones y sus tests.
+- `07_despliegue/tests/`: tests del reentrenamiento, la evaluación y el batch.
 - `07_despliegue/03_evaluar_validacion.py`: evaluación única sobre `validation.pkl`.
 - `07_despliegue/mcp_server/`: servidor MCP que expone la API a clientes como Claude.
 - `requirements.txt`: dependencias fijadas para reproducibilidad.

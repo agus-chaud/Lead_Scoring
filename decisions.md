@@ -26,6 +26,8 @@ Por qué se tomó cada decisión, el código ya explica qué se hizo.
 | DEC-014 | seleccion-variables | Mantener `ult_actividad` y `ocupacion` tras auditar posible leakage con el bivariante |
 | DEC-015 | feature-engineering | Agrupar categorías raras de `ocupacion` y `ambito` (propuesta) |
 | DEC-016 | despliegue | Alinear producción con el contrato de los notebooks (reemplaza DEC-012) |
+| DEC-017 | despliegue | Explicar el score de forma exacta frente a un lead promedio (`POST /explain`) |
+| DEC-018 | despliegue | Exponer el scoring a clientes de IA mediante un servidor MCP sin lógica de modelo |
 
 ---
 
@@ -33,7 +35,10 @@ Por qué se tomó cada decisión, el código ya explica qué se hizo.
 
 | Decisión | Área |
 |---|---|
-| Aplicar DEC-015 en `04_Transformacion` y repetir la cadena 04 → 05 → 07 → 08 (regenera `preprocesador.joblib`, `01_reglas_categorias.json` y la API) | feature-engineering |
+| Aplicar DEC-015 en `04_Transformacion` y repetir la cadena 04 → 05 → 07 → 08, luego `01_reentrenamiento.py`, `generar_referencia` y `03_evaluar_validacion.py` (regenera `preprocesador.joblib`, `01_reglas_categorias.json`, el artefacto y la API) | feature-engineering |
+| Calibrar el corte `0,5` con costo y beneficio del contacto comercial | negocio |
+| `POST /predict` con lista vacía lanza `KeyError` y acepta `visitas_total` negativo (defectos previos, no corregidos) | api |
+| Migrar el servidor MCP a `mcp` 2.x (`FastMCP` pasó a `MCPServer`; hoy fijado en `mcp==1.30.0`) | mcp |
 
 ---
 
@@ -74,3 +79,7 @@ Por qué se tomó cada decisión, el código ya explica qué se hizo.
 **DEC-015 — Categorías raras en ocupacion y ambito (propuesta).** Se propone agrupar bajo `Otros` las categorías con frecuencia menor al 1% en `ocupacion` y `ambito`. **Por qué:** `Housewife` (7 filas, 100% de compra) entra al modelo con un coeficiente inestable, y el criterio ya se aplicó a `fuente` y `ult_actividad` (DEC-003). **Regla:** aplicar el mismo umbral de frecuencia mínima a todas las nominales y persistirlo en `01_reglas_categorias.json`; ejecutar junto con la repetición de la cadena 04 → 05 → 07 → 08.
 
 **DEC-016 — Producción alineada con los notebooks.** `07_despliegue/01_reentrenamiento.py` pasa a seguir el contrato de `00_manifiesto_preproduccion.json`: reglas de calidad y categorías, `preprocesador.joblib` congelado, las 40 variables de `Variables_preseleccionadas.txt` y `LogisticRegression` (C=14,5282, L2, saga) entrenada solo con el 70% (split `random_state=42`); no hay búsqueda de hiperparámetros. Reemplaza DEC-012. **Por qué:** el 18/09 el script de producción se apartó del contrato (12 datos y 59 columnas, L1 con C=1,35, entrenado con el 100% de los leads), de modo que README, DEC-007/009/010 y la auditoría de leakage describían un modelo que no estaba desplegado y no existía una validación externa limpia. **Resultado:** evaluación única sobre `validation.pkl` (2.722 leads): ROC AUC 0,887, precisión 0,776 y recall 0,714 con corte 0,5. **Supuestos:** faltantes en `origen`, `no_enviar_email` y `descarga_lm` se codifican como "Desconocido" (ceros, igual que la categoría de referencia); `tiempo_en_site_total` faltante usa la mediana de train; las columnas que la API no recibe (`no_llamar`, `conociste_*`) se completan con "No". **Regla:** un solo camino de producción; cambiar el modelo desplegado exige cambiar el contrato y reevaluar; evaluar en `validation.pkl` una sola vez y no ajustar después; regenerar `referencia_explicacion.json` tras cada reentrenamiento.
+
+**DEC-017 — Explicabilidad exacta frente a un lead promedio.** Se agregó `POST /explain`, que descompone el logit de la regresión logística en el aporte de cada una de las 12 variables originales y lo mide **frente a un lead promedio**: logit = `logit_referencia` + suma de contribuciones, con error de punto flotante. La referencia (`07_despliegue/api/referencia_explicacion.json`) se calcula con los 6.360 leads de entrenamiento y guarda el hash del artefacto; si no coincide con el modelo, `/explain` falla con un mensaje que indica regenerarla. **Por qué:** los términos crudos del logit se miden contra un cero arbitrario (las variables están escaladas), de modo que el score_actividad de un lead típico aparecía como "×344 las chances" cuando la diferencia real contra el promedio es ×1,6; la versión sin centrar era engañosa. **Regla:** toda explicación se expresa frente al lead promedio; tras reentrenar hay que ejecutar `python -m api.generar_referencia`. El aporte es del modelo, no causal.
+
+**DEC-018 — Servidor MCP sin lógica de modelo.** `07_despliegue/mcp_server/` expone `score_lead`, `score_leads`, `explain_score` y `check_api_health`, y los recursos `leadscoring://variables` y `leadscoring://ficha-modelo`. Es una capa fina que llama a la API (`SCORING_API_URL`); no calcula nada ni duplica reglas. **Por qué:** permitir que usuarios no técnicos consulten el modelo desde un cliente de IA sin tocar la API, manteniendo una sola fuente de verdad para los scores. **Regla:** la ficha del modelo (`ficha_modelo.md`) se actualiza a mano con `evaluacion_validacion.json` tras cada reentrenamiento (las cifras no se actualizan solas) y un test falla si sus parámetros, o su AUC, precisión y recall, dejan de coincidir con el modelo y con ese JSON; la versión de `mcp` queda fijada en 1.x porque 2.x renombró `FastMCP`.

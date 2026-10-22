@@ -71,3 +71,24 @@ def test_el_batch_genera_scores_y_rechaza_extremos(tmp_path):
         pipeline = cloudpickle.load(f)
     esperado = pipeline.predict_proba(leads.drop(columns=["id"]))[:, 1]
     assert np.allclose(resultado["score"].to_numpy(), esperado)
+
+
+def test_la_evaluacion_registrada_corresponde_al_artefacto_y_la_ficha_la_refleja():
+    """Fails after a retrain until 03_evaluar_validacion.py is rerun and the model card updated."""
+    import hashlib
+    import json
+
+    evaluacion = json.loads(
+        (ROOT / "06_resultados" / "Modelizacion" / "evaluacion_validacion.json").read_text(encoding="utf-8")
+    )
+    sha = hashlib.sha256(ARTEFACTO.read_bytes()).hexdigest()
+    assert evaluacion["artefacto_sha256"] == sha, (
+        "evaluacion_validacion.json es de otro artefacto: ejecutá 03_evaluar_validacion.py"
+    )
+
+    ficha = (ROOT / "07_despliegue" / "mcp_server" / "ficha_modelo.md").read_text(encoding="utf-8")
+    m = evaluacion["metricas"]
+    auc = f"{m['roc_auc']:.3f}".replace(".", ",")
+    assert f"AUC): {auc}" in ficha, f"la ficha no muestra el AUC {auc} de evaluacion_validacion.json"
+    assert f"{round(m['precision'] * 100)} compran" in ficha
+    assert f"detecta {round(m['recall'] * 100)}" in ficha

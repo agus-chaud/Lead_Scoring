@@ -241,3 +241,35 @@
 **Conclusión:** Un único camino. El modelo se evaluó una sola vez sobre `validation.pkl` (2.722 leads, 6 rechazados por extremos): ROC AUC 0,887, accuracy 0,813, precisión 0,776, recall 0,714 con corte 0,5; consistente con el AUC de 0,892 de validación cruzada. Supuestos que el contrato no definía: faltantes en `origen`, `no_enviar_email` y `descarga_lm` se codifican como "Desconocido" (ceros, igual que la categoría de referencia); `tiempo_en_site_total` faltante usa la mediana de train; las columnas que la API no recibe (`no_llamar`, `conociste_*`) se completan con "No". Tras cada reentrenamiento hay que regenerar `07_despliegue/api/referencia_explicacion.json`.
 
 **Código afectado:** `07_despliegue/01_reentrenamiento.py`, `07_despliegue/03_evaluar_validacion.py`, `07_despliegue/api/scoring.py`, `07_despliegue/api/generar_referencia.py`, `07_despliegue/tests/`.
+
+---
+
+## DEC-017: Explicabilidad exacta frente a un lead promedio
+
+**Área:** despliegue | **Fase:** API | **Fecha:** 2026-10-22 | **Estado:** Vigente
+
+**Decisión:** Exponer `POST /explain`, que devuelve para cada lead el score, el `logit`, el `logit_referencia` y un factor por variable original con su valor, `contribucion_logit`, efecto (sube, baja o neutro) y `multiplicador_odds`. Las contribuciones se miden frente a un lead promedio calculado con los 6.360 leads de entrenamiento y almacenado en `07_despliegue/api/referencia_explicacion.json` junto con el hash del artefacto. También informa banderas: datos faltantes y variables con posible leakage (`ult_actividad`, `ocupacion`).
+
+**Alternativa descartada:** Usar directamente los términos `coeficiente × valor transformado` del logit, o una aproximación tipo SHAP.
+
+**Por qué la descartamos:** Los términos crudos se miden contra el valor 0 de variables escaladas, no contra un lead típico: el score_actividad de un lead normal salía como +5,84 (×344 las chances) cuando contra el promedio es +0,46 (×1,6), y un lead con datos vacíos parecía tener ventajas enormes. En una regresión logística la descomposición es exacta, así que una aproximación no aporta.
+
+**Conclusión:** La referencia es el promedio de los aportes de cada variable sobre los datos de entrenamiento; el lead promedio puntúa 29,4%. Si el artefacto cambia, la referencia deja de coincidir y `/explain` lo rechaza con un mensaje claro. La explicación describe al modelo, no relaciones causales.
+
+**Código afectado:** `07_despliegue/api/scoring.py`, `07_despliegue/api/schemas.py`, `07_despliegue/api/main.py`, `07_despliegue/api/generar_referencia.py`, `07_despliegue/api/test_explain.py`.
+
+---
+
+## DEC-018: Servidor MCP sin lógica de modelo
+
+**Área:** despliegue | **Fase:** integración | **Fecha:** 2026-10-22 | **Estado:** Vigente
+
+**Decisión:** Publicar `07_despliegue/mcp_server/server.py` (stdio) con las herramientas `score_lead`, `score_leads`, `explain_score` y `check_api_health`, y los recursos `leadscoring://variables` y `leadscoring://ficha-modelo`. El servidor traduce lenguaje natural a llamadas a la API y devuelve resúmenes y avisos en castellano; el score y la explicación siempre salen de la API.
+
+**Alternativa descartada:** Cargar el modelo dentro del servidor MCP, o dejar a un LLM calcular o inferir el score.
+
+**Por qué la descartamos:** Duplicar el modelo crearía una segunda fuente de verdad que se desalinea (como ocurrió entre notebooks y producción, DEC-016). Un LLM que calcule el score no es auditable.
+
+**Conclusión:** La versión de `mcp` queda fijada en 1.30.0 porque la 2.x renombró `FastMCP` a `MCPServer`; el servidor declara `httpx` porque el SDK ya no lo incluye. El umbral 0,5 está duplicado en `server.py` y en `api/scoring.py`. La ficha del modelo se mantiene a mano: las cifras de rendimiento no se actualizan solas. Tras cada reentrenamiento hay que ejecutar `03_evaluar_validacion.py` y copiar AUC, precisión, recall y top-k a la ficha. Dos tests lo vigilan: `test_ficha.py` compara los parámetros con el modelo real, y `test_evaluacion_y_batch.py` falla si `evaluacion_validacion.json` es de otro artefacto o si la ficha muestra un AUC, una precisión o un recall distintos a los del JSON.
+
+**Código afectado:** `07_despliegue/mcp_server/`.
