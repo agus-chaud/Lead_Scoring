@@ -6,6 +6,7 @@ The server holds no model logic: every score comes from the FastAPI service
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -236,6 +237,15 @@ async def score_leads(leads: list[dict[str, Any]]) -> dict[str, Any]:
 async def check_api_health() -> dict[str, Any]:
     """Verifica que la API de scoring esté levantada y respondiendo."""
     return await _request("GET", "/health")
+
+
+FICHA_PATH = Path(__file__).resolve().parent / "ficha_modelo.md"
+
+
+@mcp.resource("leadscoring://ficha-modelo", mime_type="text/markdown")
+def ficha_modelo() -> str:
+    """Ficha del modelo en lenguaje simple: qué hace, qué tan bien funciona y sus límites."""
+    return FICHA_PATH.read_text(encoding="utf-8")
 
 
 @mcp.resource("leadscoring://variables", mime_type="text/markdown")

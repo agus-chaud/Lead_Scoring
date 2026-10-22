@@ -220,3 +220,14 @@ async def test_explain_score_traduce_errores_de_la_api(monkeypatch):
         await server.mcp.call_tool("explain_score", {"visitas_total": 99})
 
     assert "visitas_total" in str(exc.value)
+
+
+async def test_ficha_del_modelo_esta_publicada_como_recurso():
+    recursos = {str(r.uri) for r in await server.mcp.list_resources()}
+    assert "leadscoring://ficha-modelo" in recursos
+
+    contenido = await server.mcp.read_resource("leadscoring://ficha-modelo")
+    texto = contenido[0].content
+    for seccion in ("Qué es", "Qué tan bien funciona", "Límites"):
+        assert seccion in texto
+    assert "leakage" in texto

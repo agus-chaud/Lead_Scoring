@@ -125,7 +125,7 @@ La documentación interactiva está disponible en `http://127.0.0.1:8000/docs`.
 
 `07_despliegue/mcp_server/` expone la API como servidor MCP. Un usuario sin conocimientos técnicos pide el score en lenguaje natural y Claude llama a la API. El servidor no contiene lógica de modelo: cada score sale de la API.
 
-Herramientas: `score_lead` (un lead), `score_leads` (lote), `explain_score` (por qué ese score) y `check_api_health`. El recurso `leadscoring://variables` documenta los campos, sus límites y la advertencia de leakage de `ult_actividad` y `ocupacion` (DEC-014).
+Herramientas: `score_lead` (un lead), `score_leads` (lote), `explain_score` (por qué ese score) y `check_api_health`. El recurso `leadscoring://ficha-modelo` (fuente: `07_despliegue/mcp_server/ficha_modelo.md`) explica en lenguaje simple qué hace el modelo, qué tan bien funciona y sus límites. El recurso `leadscoring://variables` documenta los campos, sus límites y la advertencia de leakage de `ult_actividad` y `ocupacion` (DEC-014).
 
 1. Levantá la API (sección anterior). Usá un entorno con las versiones de `07_despliegue/api/requirements.txt`: con otra versión de scikit-learn `/predict` responde 500.
 2. Instalá las dependencias del MCP: `pip install -r 07_despliegue/mcp_server/requirements.txt`.
