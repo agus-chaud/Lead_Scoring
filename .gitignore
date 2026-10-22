@@ -27,3 +27,5 @@ reports/
 # Configuración de IDE
 .vscode/
 .idea/
+.atl/.skill-registry.cache.json
+.atl/skill-registry.md
