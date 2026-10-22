@@ -22,13 +22,13 @@ client = TestClient(app)
 
 
 def test_predict_conserva_su_resultado():
-    """Pins /predict: adding /explain must not change it."""
+    """Pins /predict for the aligned model (camino A, contract of the notebooks)."""
     r = client.post("/predict", json=PAYLOAD)
     assert r.status_code == 200
     fila = r.json()[0]
     assert fila["id"] == 660737
     assert fila["prediccion"] == 0
-    assert fila["score"] == pytest.approx(0.15312413831374566, abs=1e-9)
+    assert fila["score"] == pytest.approx(0.14467028562707906, abs=1e-9)
 
 
 def test_explain_coincide_con_predict():

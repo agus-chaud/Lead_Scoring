@@ -14,8 +14,8 @@ Rama: feat/alinear-produccion-notebooks | Entrega: ask-on-risk (sin push sin ped
 
 ## Tasks
 - [x] T1 (S1,S2,S3,S4) Reescribir `01_reentrenamiento.py` según el contrato + test de paridad con el notebook 08 | inline | 6 tests verdes (RED observado antes: el script viejo no exponía `entrenar`) | commit: ver git log (feat(produccion))
-- [ ] T2 (S5) Adaptar `/explain` a los nombres canónicos, regenerar referencia, tests de API | inline | commit: -
-- [ ] T3 (S6) Evaluar una vez sobre validation.pkl; adaptar `02_produccion_scoring.py` | inline | commit: -
+- [x] T2 (S5) Adaptar `/explain` a los nombres canónicos, regenerar referencia, tests de API | inline | 12 tests API verdes; E2E MCP→API real OK | commit: feat(produccion) desplegar modelo alineado
+- [x] T3 (S6) Evaluar una vez sobre validation.pkl; adaptar `02_produccion_scoring.py` | inline | AUC 0,8868 en 2.722 leads no vistos; batch ya compatible (test de regresión) | commit: idem T2
 - [ ] T4 (S7) README, ficha, DEC-016, tests de coherencia de la ficha | inline | commit: -
 
 ## Log
@@ -24,3 +24,5 @@ Rama: feat/alinear-produccion-notebooks | Entrega: ask-on-risk (sin push sin ped
 - Hallazgos de exploración: el split reproduce validation.pkl (2.728 filas, 0 solape con las 6.365 de train); el preprocesador congelado exige columnas que la API no recibe; la salida del ColumnTransformer puede ser esparsa (sparse_threshold 0,3).
 - Route declaration: todo inline; ningún Writer trigger aplica (unidades dependientes entre sí).
 - Hallazgo T1: la paridad inicial falló por un error del test (alimenté filas ya limpiadas, recalculó los flags de faltantes); coeficientes idénticos al notebook (diferencia 0,0).
+- Evaluación única (2026-10-22) sobre validation.pkl: AUC 0,8868, accuracy 0,813, precisión 0,776, recall 0,714 (corte 0,5); top 10% compra 94%. Consistente con el AUC de CV 0,8919 del desarrollo. No se ajustó nada después.
+- Nota: `02_produccion_scoring.py` no requirió cambios; se agregó test que lo fija.

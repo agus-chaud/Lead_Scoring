@@ -1,0 +1,28 @@
+{
+  "fecha": "2026-10-22",
+  "artefacto_sha256": "81049bbf868247d4513c2876f254c2fba0815de556792777b84d482c5d838b5b",
+  "filas_validacion": 2728,
+  "filas_evaluadas": 2722,
+  "filas_rechazadas_por_extremos": 6,
+  "umbral": 0.5,
+  "metricas": {
+    "roc_auc": 0.8868323127379477,
+    "accuracy": 0.813372520205731,
+    "precision": 0.7757894736842105,
+    "recall": 0.7141472868217055,
+    "tasa_base": 0.37913299044819987,
+    "proporcion_predicha_compra": 0.349008082292432,
+    "top_10pct": {
+      "tasa_compra": 0.9411764705882353,
+      "compradores_capturados": 0.24806201550387597
+    },
+    "top_20pct": {
+      "tasa_compra": 0.8860294117647058,
+      "compradores_capturados": 0.46705426356589147
+    },
+    "top_30pct": {
+      "tasa_compra": 0.8137254901960784,
+      "compradores_capturados": 0.6434108527131783
+    }
+  }
+}

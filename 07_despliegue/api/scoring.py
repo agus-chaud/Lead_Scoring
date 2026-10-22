@@ -41,9 +41,9 @@ _EPS = 1e-6
 
 
 def _variable_de(nombre_transformado: str) -> str:
-    """Map a transformed column (e.g. 'pipeline-1__ocupacion_Student') to its raw variable."""
+    """Map a model column (e.g. 'ocupacion_Student', 'tiempo_en_site_total_yj_mm') to its raw variable."""
     candidatas = [
-        v for v in VARIABLES if re.search(rf"(?:__|_){re.escape(v)}(?:_|$)", nombre_transformado)
+        v for v in VARIABLES if re.search(rf"(?:^|__|_){re.escape(v)}(?:_|$)", nombre_transformado)
     ]
     if len(candidatas) != 1:
         raise RuntimeError(f"No se pudo asignar '{nombre_transformado}' a una variable: {candidatas}")
@@ -52,7 +52,8 @@ def _variable_de(nombre_transformado: str) -> str:
 
 _preprocesador = pipeline[:-1]
 _modelo = pipeline[-1]
-_VARIABLE_POR_COLUMNA = [_variable_de(n) for n in pipeline[1].get_feature_names_out()]
+# The "finalistas" step keeps the 40 columns the model was fitted on, in order.
+_VARIABLE_POR_COLUMNA = [_variable_de(n) for n in pipeline.named_steps["finalistas"].kw_args["nombres"]]
 
 
 def _valor_crudo(valor):

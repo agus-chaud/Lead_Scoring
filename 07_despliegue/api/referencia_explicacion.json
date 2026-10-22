@@ -1,19 +1,19 @@
 {
-  "artefacto_sha256": "9bf1fb0fc72e04ac7199cc4c146e56e01b08e0c89cb62eddfbcd1b63d0c80521",
-  "n_filas": 9082,
-  "score_medio": 0.3762466095555843,
+  "artefacto_sha256": "81049bbf868247d4513c2876f254c2fba0815de556792777b84d482c5d838b5b",
+  "n_filas": 6360,
+  "score_medio": 0.3748429125428676,
   "aporte_promedio": {
-    "origen": -0.38439375863877867,
-    "fuente": -1.3457431977188432,
-    "no_enviar_email": -0.08377533641404519,
-    "visitas_total": 0.2692060878419952,
-    "tiempo_en_site_total": 2.2104081943242524,
-    "paginas_vistas_visita": -0.6980713383414946,
-    "ult_actividad": 1.8403757412468198,
-    "ambito": -0.3694961288278248,
-    "ocupacion": -0.9930920495736584,
-    "score_actividad": 5.375637431042645,
-    "score_perfil": 1.236504130166302,
-    "descarga_lm": -0.07043849799269326
+    "origen": -0.6239395978391933,
+    "fuente": -0.9993452569421628,
+    "no_enviar_email": -0.08103942216419552,
+    "visitas_total": -0.02595131669193003,
+    "tiempo_en_site_total": 2.2381118765146066,
+    "paginas_vistas_visita": -0.6632758018172737,
+    "ult_actividad": 2.0911845378435343,
+    "ambito": -0.4581551731490618,
+    "ocupacion": -0.12229557783247712,
+    "score_actividad": 5.7770626120698445,
+    "score_perfil": 1.693573682283851,
+    "descarga_lm": -0.08956410297428287
   }
 }
