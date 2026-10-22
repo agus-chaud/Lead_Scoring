@@ -166,7 +166,7 @@
 ---
 ## DEC-012: Búsqueda de reentrenamiento basada en evidencia disponible
 
-**Área:** despliegue | **Fase:** pipelines | **Fecha:** 2026-09-18 | **Estado:** Vigente
+**Área:** despliegue | **Fase:** pipelines | **Fecha:** 2026-09-18 | **Estado:** Reemplazada por DEC-016
 
 **Decisión:** El script de reentrenamiento busca hiperparámetros de `LogisticRegression` con penalizaciones L1/L2 y valores de `C` que cubren el rango observado, usando `RandomizedSearchCV` con ROC AUC.
 
@@ -225,3 +225,19 @@
 **Conclusión:** Aplicar el mismo umbral a todas las nominales. Requiere regenerar `preprocesador.joblib` y repetir la cadena 04 → 05 → 07 → 08, por lo que se ejecuta como un único cambio y queda pendiente hasta entonces.
 
 **Código afectado:** `03_notebooks/04_Transformacion.ipynb`, `07_despliegue/pre-produccion/01_reglas_categorias.json`, `07_despliegue/api/`.
+
+---
+
+## DEC-016: Alinear producción con el contrato de los notebooks
+
+**Área:** despliegue | **Fase:** pipelines | **Fecha:** 2026-10-22 | **Estado:** Vigente
+
+**Decisión:** El reentrenamiento de producción sigue el contrato de `00_manifiesto_preproduccion.json`: reglas de calidad y de categorías, `05_modelos/preprocesador.joblib` congelado, las 40 variables de `01_Documentos/Variables_preseleccionadas.txt` y `LogisticRegression(C=14.528246637516036, penalty="l2", solver="saga", max_iter=5000, random_state=42)` entrenada solo con el 70% del split `train_test_split(test_size=0.30, random_state=42)`. Solo se ajusta la regresión logística; no hay búsqueda de hiperparámetros.
+
+**Alternativa descartada:** Mantener el pipeline autónomo de `01_reentrenamiento.py` (12 datos de entrada, 59 columnas, `RandomizedSearchCV`, entrenado con todos los leads) y corregir la documentación.
+
+**Por qué la descartamos:** Ese camino descartaba la selección de variables (DEC-007) y la auditoría de leakage (DEC-014), que se hicieron sobre el modelo de 40 variables, y dejaba al modelo sin validación externa porque ya había visto `validation.pkl`. El README, DEC-007/009/010 y la auditoría describían un modelo distinto del desplegado.
+
+**Conclusión:** Un único camino. El modelo se evaluó una sola vez sobre `validation.pkl` (2.722 leads, 6 rechazados por extremos): ROC AUC 0,887, accuracy 0,813, precisión 0,776, recall 0,714 con corte 0,5; consistente con el AUC de 0,892 de validación cruzada. Supuestos que el contrato no definía: faltantes en `origen`, `no_enviar_email` y `descarga_lm` se codifican como "Desconocido" (ceros, igual que la categoría de referencia); `tiempo_en_site_total` faltante usa la mediana de train; las columnas que la API no recibe (`no_llamar`, `conociste_*`) se completan con "No". Tras cada reentrenamiento hay que regenerar `07_despliegue/api/referencia_explicacion.json`.
+
+**Código afectado:** `07_despliegue/01_reentrenamiento.py`, `07_despliegue/03_evaluar_validacion.py`, `07_despliegue/api/scoring.py`, `07_despliegue/api/generar_referencia.py`, `07_despliegue/tests/`.

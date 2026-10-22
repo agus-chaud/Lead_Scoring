@@ -16,7 +16,7 @@ Rama: feat/alinear-produccion-notebooks | Entrega: ask-on-risk (sin push sin ped
 - [x] T1 (S1,S2,S3,S4) Reescribir `01_reentrenamiento.py` según el contrato + test de paridad con el notebook 08 | inline | 6 tests verdes (RED observado antes: el script viejo no exponía `entrenar`) | commit: ver git log (feat(produccion))
 - [x] T2 (S5) Adaptar `/explain` a los nombres canónicos, regenerar referencia, tests de API | inline | 12 tests API verdes; E2E MCP→API real OK | commit: feat(produccion) desplegar modelo alineado
 - [x] T3 (S6) Evaluar una vez sobre validation.pkl; adaptar `02_produccion_scoring.py` | inline | AUC 0,8868 en 2.722 leads no vistos; batch ya compatible (test de regresión) | commit: idem T2
-- [ ] T4 (S7) README, ficha, DEC-016, tests de coherencia de la ficha | inline | commit: -
+- [x] T4 (S7) README, ficha, DEC-016, tests de coherencia de la ficha | inline | ficha reescrita en T2/T3 (test_ficha verde); README y DEC-016 acá | commit: docs(produccion) DEC-016
 
 ## Log
 - L1 (2026-10-22, usuario): "Que producción siga a los notebooks (A)"
@@ -26,3 +26,5 @@ Rama: feat/alinear-produccion-notebooks | Entrega: ask-on-risk (sin push sin ped
 - Hallazgo T1: la paridad inicial falló por un error del test (alimenté filas ya limpiadas, recalculó los flags de faltantes); coeficientes idénticos al notebook (diferencia 0,0).
 - Evaluación única (2026-10-22) sobre validation.pkl: AUC 0,8868, accuracy 0,813, precisión 0,776, recall 0,714 (corte 0,5); top 10% compra 94%. Consistente con el AUC de CV 0,8919 del desarrollo. No se ajustó nada después.
 - Nota: `02_produccion_scoring.py` no requirió cambios; se agregó test que lo fija.
+- Verificación propia (2026-10-22): 9 tests de producción, 12 de API y 14 de MCP en verde; E2E MCP→API real OK.
+- Risk: items 1 y 3 (se reemplaza el artefacto del modelo desplegado y cambian los valores de score; la forma del contrato de /predict no cambia). Corresponde un verificador independiente al cierre de la feature.

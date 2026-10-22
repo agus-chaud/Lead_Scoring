@@ -29,9 +29,9 @@ Sin un criterio objetivo, todos los leads parecen igual de importantes. Eso hace
 - Positivos: **37,48 %**; no se aplica balanceo porque la proporción no es extrema.
 - Predictoras finales: **40**, seleccionadas con RFECV y análisis de correlación.
 - Única familia evaluada: **Logistic Regression**, priorizada por su explicabilidad para el equipo comercial.
-- Configuración candidata: `C=14.5282`, `penalty="l2"`, `solver="saga"`, `max_iter=5000`.
-- ROC AUC medio en validación cruzada: **0,8919**.
-- Validación externa reservada: `02_datos/02_Validacion/validation.pkl`.
+- Configuración: `C=14.5282`, `penalty="l2"`, `solver="saga"`, `max_iter=5000`, entrenada con el 70 % de los leads.
+- ROC AUC medio en validación cruzada (desarrollo): **0,8919**.
+- Validación externa (`02_datos/02_Validacion/validation.pkl`, 2.722 leads no vistos, evaluada una sola vez): ROC AUC **0,887**, precisión 0,776 y recall 0,714 con el corte 0,5. Detalle en `06_resultados/Modelizacion/evaluacion_validacion.json`.
 
 ## Cómo interpretar el resultado
 
@@ -43,10 +43,11 @@ Sin un criterio objetivo, todos los leads parecen igual de importantes. Eso hace
 El flujo de producción es:
 
 ```text
-CSV crudo → control de extremos → transformaciones → Logistic Regression → score y predicción
+CSV crudo → control de extremos → calidad y reglas de categorías → preprocesador congelado → 40 variables finalistas → Logistic Regression → score y predicción
 ```
 
-- `07_despliegue/01_reentrenamiento.py` reconstruye el pipeline, busca la mejor configuración logística y serializa el artefacto.
+- `07_despliegue/01_reentrenamiento.py` sigue el contrato de `07_despliegue/pre-produccion/00_manifiesto_preproduccion.json` (DEC-016): reutiliza el preprocesador congelado y las 40 variables finalistas, reentrena solo la regresión logística con el 70 % de los leads y serializa el artefacto.
+- `07_despliegue/03_evaluar_validacion.py` evalúa el artefacto sobre `validation.pkl`. Ejecutalo una sola vez después de reentrenar y no ajustes el modelo a partir del resultado.
 - `07_despliegue/02_produccion_scoring.py` carga el artefacto y genera un CSV con `id`, `score` y `prediccion`.
 - `07_despliegue/api/` expone el mismo motor mediante FastAPI con `POST /predict`, `GET /health` y `GET /debug`.
 - Los leads excluidos por extremos se escriben en un CSV separado en batch; la API los rechaza con HTTP 422.
@@ -59,10 +60,12 @@ CSV crudo → control de extremos → transformaciones → Logistic Regression �
    pip install -r requirements.txt
    ```
 
-2. Reentrená y generá el artefacto del pipeline:
+2. Reentrená y generá el artefacto del pipeline. La API lee su propia copia y su referencia de explicaciones, así que hay que actualizarlas:
 
    ```bash
    python 07_despliegue/01_reentrenamiento.py
+   cp 07_despliegue/artefacto_pipeline.pkl 07_despliegue/api/artefacto_pipeline.pkl
+   cd 07_despliegue && python -m api.generar_referencia
    ```
 
 3. Generá scores para leads nuevos:
@@ -145,7 +148,7 @@ Herramientas: `score_lead` (un lead), `score_leads` (lote), `explain_score` (por
 
 ### Explicar un score
 
-`explain_score` usa el endpoint `POST /explain` de la API. Descompone el score en el aporte de cada variable **frente a un lead promedio** (el de los 9.082 leads con que se ajustó el modelo, 30,5% de score). La descomposición es exacta porque el modelo es una regresión logística. Un factor `x0,11` significa que esa variable reduce las chances de compra a un 11% de las de un lead típico.
+`explain_score` usa el endpoint `POST /explain` de la API. Descompone el score en el aporte de cada variable **frente a un lead promedio** (el promedio de los 6.360 leads de entrenamiento, 29,4% de score). La descomposición es exacta porque el modelo es una regresión logística. Un factor `x0,11` significa que esa variable reduce las chances de compra a un 11% de las de un lead típico.
 
 La referencia vive en `07_despliegue/api/referencia_explicacion.json`. Si reentrenás el modelo, regenerala desde `07_despliegue/`; mientras no coincida con el modelo, `/explain` falla con un mensaje que lo indica:
 
@@ -172,6 +175,7 @@ Tests: `cd 07_despliegue/mcp_server && python -m pytest` (MCP) y `cd 07_desplieg
 - `07_despliegue/01_reentrenamiento.py`: reentrenamiento y serialización del pipeline.
 - `07_despliegue/02_produccion_scoring.py`: scoring batch de datos nuevos.
 - `07_despliegue/api/`: API FastAPI, contrato, payload de prueba y cliente de ejemplo.
+- `07_despliegue/03_evaluar_validacion.py`: evaluación única sobre `validation.pkl`.
 - `07_despliegue/mcp_server/`: servidor MCP que expone la API a clientes como Claude.
 - `requirements.txt`: dependencias fijadas para reproducibilidad.
 - `decisions.md` y `decisions_detalle.md`: registro de decisiones técnicas.

@@ -21,10 +21,11 @@ Por qué se tomó cada decisión, el código ya explica qué se hizo.
 | DEC-009 | modelado | Congelar la configuración candidata de modelización |
 | DEC-010 | despliegue | Consolidar preproducción con artefactos congelados |
 | DEC-011 | despliegue | Fijar entorno y persistir reglas categóricas de inferencia |
-| DEC-012 | despliegue | Reentrenar únicamente la familia logística disponible |
+| DEC-012 | despliegue | Reentrenar únicamente la familia logística disponible (reemplazada por DEC-016) |
 | DEC-013 | despliegue | Exponer scoring mediante API REST con contrato explícito |
 | DEC-014 | seleccion-variables | Mantener `ult_actividad` y `ocupacion` tras auditar posible leakage con el bivariante |
 | DEC-015 | feature-engineering | Agrupar categorías raras de `ocupacion` y `ambito` (propuesta) |
+| DEC-016 | despliegue | Alinear producción con el contrato de los notebooks (reemplaza DEC-012) |
 
 ---
 
@@ -71,3 +72,5 @@ Por qué se tomó cada decisión, el código ya explica qué se hizo.
 **DEC-014 — Lectura bivariante y auditoría de leakage.** Se incorporó al EDA el análisis bivariante contra `compra` y se auditaron `ult_actividad` (IV 0,78) y `ocupacion` (IV 0,94), que superan el IV de 0,5 usado como alerta de leakage. Quitar `ult_actividad` baja el ROC AUC de CV de 0,8947 a 0,8581, quitar `ocupacion` a 0,8799 y quitar ambas a 0,8376. Se mantienen ambas variables bajo el supuesto de scoring durante el seguimiento. **Por qué:** `ocupacion` y `SMS Sent` conservan su señal dentro de estratos de engagement y de origen, pero esos controles no distinguen señal legítima de fuga; sin fecha ni acceso a negocio el riesgo no puede descartarse. **Regla:** ante variables con IV o AUC extremo, medir la dependencia del modelo (ablación), documentar el supuesto de momento de scoring y reportar el AUC conservador junto al AUC base.
 
 **DEC-015 — Categorías raras en ocupacion y ambito (propuesta).** Se propone agrupar bajo `Otros` las categorías con frecuencia menor al 1% en `ocupacion` y `ambito`. **Por qué:** `Housewife` (7 filas, 100% de compra) entra al modelo con un coeficiente inestable, y el criterio ya se aplicó a `fuente` y `ult_actividad` (DEC-003). **Regla:** aplicar el mismo umbral de frecuencia mínima a todas las nominales y persistirlo en `01_reglas_categorias.json`; ejecutar junto con la repetición de la cadena 04 → 05 → 07 → 08.
+
+**DEC-016 — Producción alineada con los notebooks.** `07_despliegue/01_reentrenamiento.py` pasa a seguir el contrato de `00_manifiesto_preproduccion.json`: reglas de calidad y categorías, `preprocesador.joblib` congelado, las 40 variables de `Variables_preseleccionadas.txt` y `LogisticRegression` (C=14,5282, L2, saga) entrenada solo con el 70% (split `random_state=42`); no hay búsqueda de hiperparámetros. Reemplaza DEC-012. **Por qué:** el 18/09 el script de producción se apartó del contrato (12 datos y 59 columnas, L1 con C=1,35, entrenado con el 100% de los leads), de modo que README, DEC-007/009/010 y la auditoría de leakage describían un modelo que no estaba desplegado y no existía una validación externa limpia. **Resultado:** evaluación única sobre `validation.pkl` (2.722 leads): ROC AUC 0,887, precisión 0,776 y recall 0,714 con corte 0,5. **Supuestos:** faltantes en `origen`, `no_enviar_email` y `descarga_lm` se codifican como "Desconocido" (ceros, igual que la categoría de referencia); `tiempo_en_site_total` faltante usa la mediana de train; las columnas que la API no recibe (`no_llamar`, `conociste_*`) se completan con "No". **Regla:** un solo camino de producción; cambiar el modelo desplegado exige cambiar el contrato y reevaluar; evaluar en `validation.pkl` una sola vez y no ajustar después; regenerar `referencia_explicacion.json` tras cada reentrenamiento.
