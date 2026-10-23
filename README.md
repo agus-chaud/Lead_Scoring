@@ -20,7 +20,7 @@ Sin un criterio objetivo, todos los leads parecen igual de importantes. Eso hace
 
 - **Mejor asignación del esfuerzo comercial:** permite priorizar los leads con mayor potencial y medir si mejora el contacto efectivo y la conversión.
 - **Priorización consistente:** reduce la dependencia de la intuición individual para ordenar la cartera.
-- **Explicabilidad:** la regresión logística permite descomponer cada score en el aporte exacto de cada variable frente a un lead promedio (`POST /explain`, DEC-017).
+- **Explicabilidad:** la regresión logística con splines sigue siendo aditiva, lo que permite descomponer cada score en el aporte exacto de cada variable frente a un lead promedio (`POST /explain`, DEC-017).
 - **Trazabilidad:** los leads con valores extremos quedan identificados con su motivo de rechazo, sin desaparecer silenciosamente del proceso.
 
 ## Modelo y evaluación
@@ -28,10 +28,10 @@ Sin un criterio objetivo, todos los leads parecen igual de importantes. Eso hace
 - Target: `compra`, clasificación binaria.
 - Positivos: **37,48 %**; no se aplica balanceo porque la proporción no es extrema.
 - Predictoras finales: **40**, seleccionadas con RFECV y análisis de correlación.
-- Única familia evaluada: **Logistic Regression**, priorizada por su explicabilidad para el equipo comercial.
-- Configuración: `C=14.5282`, `penalty="l2"`, `solver="saga"`, `max_iter=5000`, entrenada con el 70 % de los leads.
-- ROC AUC medio en validación cruzada (desarrollo): **0,8919**.
-- Validación externa (`02_datos/02_Validacion/validation.pkl`, 2.722 leads no vistos, evaluada una sola vez): ROC AUC **0,887**, precisión 0,776 y recall 0,714 con el corte 0,5. Detalle en `06_resultados/Modelizacion/evaluacion_validacion.json`.
+- Familia evaluada: **Logistic Regression**, priorizada por su explicabilidad para el equipo comercial. El modelo desplegado agrega **splines** cúbicos (6 nodos) a las 4 variables continuas para capturar efectos no lineales (DEC-019).
+- Configuración: `C=1.2229`, `penalty="l2"`, `solver="saga"`, `max_iter=5000`, entrenada con el 70 % de los leads.
+- ROC AUC medio en validación cruzada (desarrollo): **0,9106** (la logística lineal daba 0,8919).
+- Validación externa (`02_datos/02_Validacion/validation.pkl`, 2.722 leads no vistos): ROC AUC **0,910**, precisión 0,806 y recall 0,764 con el corte 0,5, frente a 0,887, 0,776 y 0,714 de la logística lineal. Detalle en `06_resultados/Modelizacion/evaluacion_validacion.json`.
 
 ## Cómo interpretar el resultado
 
@@ -43,10 +43,10 @@ Sin un criterio objetivo, todos los leads parecen igual de importantes. Eso hace
 El flujo de producción es:
 
 ```text
-CSV crudo → control de extremos → calidad y reglas de categorías → preprocesador congelado → 40 variables finalistas → Logistic Regression → score y predicción
+CSV crudo → control de extremos → calidad y reglas de categorías → preprocesador congelado → 40 variables finalistas → splines en las 4 continuas → Logistic Regression → score y predicción
 ```
 
-- `07_despliegue/01_reentrenamiento.py` sigue el contrato de `07_despliegue/pre-produccion/00_manifiesto_preproduccion.json` (DEC-016): reutiliza el preprocesador congelado y las 40 variables finalistas, reentrena solo la regresión logística con el 70 % de los leads y serializa el artefacto.
+- `07_despliegue/01_reentrenamiento.py` sigue el contrato de `07_despliegue/pre-produccion/00_manifiesto_preproduccion.json` (DEC-016) y la configuración de `06_resultados/Modelizacion/config_mejor_modelo.json` (DEC-019): reutiliza el preprocesador congelado y las 40 variables finalistas, reentrena solo los splines y la regresión logística con el 70 % de los leads y serializa el artefacto.
 - `07_despliegue/03_evaluar_validacion.py` evalúa el artefacto sobre `validation.pkl`. Ejecutalo una sola vez después de reentrenar y no ajustes el modelo a partir del resultado.
 - `07_despliegue/02_produccion_scoring.py` carga el artefacto y genera un CSV con `id`, `score` y `prediccion`.
 - `07_despliegue/api/` expone el mismo motor mediante FastAPI con `POST /predict`, `POST /explain`, `GET /health` y `GET /debug`.
@@ -151,7 +151,7 @@ Herramientas: `score_lead` (un lead), `score_leads` (lote), `explain_score` (por
 
 ### Explicar un score
 
-`explain_score` usa el endpoint `POST /explain` de la API (DEC-017). Descompone el score en el aporte de cada variable **frente a un lead promedio** (el promedio de los 6.360 leads de entrenamiento, 29,4% de score). La descomposición es exacta porque el modelo es una regresión logística. Un factor `x0,11` significa que esa variable reduce las chances de compra a un 11% de las de un lead típico.
+`explain_score` usa el endpoint `POST /explain` de la API (DEC-017). Descompone el score en el aporte de cada variable **frente a un lead promedio** (el promedio de los 6.360 leads de entrenamiento, 29,2% de score). La descomposición es exacta porque el modelo es una regresión logística: con splines, cada variable continua aporta la suma de sus columnas de curva. Un factor `x0,11` significa que esa variable reduce las chances de compra a un 11% de las de un lead típico.
 
 La referencia vive en `07_despliegue/api/referencia_explicacion.json`. Si reentrenás el modelo, regenerala desde `07_despliegue/`; mientras no coincida con el modelo, `/explain` falla con un mensaje que lo indica:
 

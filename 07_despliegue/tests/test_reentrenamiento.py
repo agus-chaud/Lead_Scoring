@@ -1,6 +1,7 @@
 """The production pipeline must follow the contract of 00_manifiesto_preproduccion.json.
 
-The oracle below replays notebook 08 step by step; production has to match it.
+The oracle below replays notebook 08 step by step, plus the spline model chosen in notebook 07;
+production has to match it.
 """
 from __future__ import annotations
 
@@ -15,8 +16,11 @@ import joblib
 import numpy as np
 import pandas as pd
 import pytest
+from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import SplineTransformer
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "07_despliegue" / "01_reentrenamiento.py"
@@ -79,11 +83,19 @@ def _oraculo_notebook08():
     features = pd.DataFrame(transformada, index=df.index, columns=nombres)
     finalistas = [l.strip() for l in FINALISTAS.read_text(encoding="utf-8").splitlines() if l.strip()]
     X_final = features.loc[:, finalistas]
-    params = json.loads(CONFIG.read_text(encoding="utf-8"))["parametros"]
-    modelo = LogisticRegression(
-        C=float(params["C"]), penalty=params["penalty"], solver=params["solver"],
-        max_iter=int(params["max_iter"]), random_state=int(params["random_state"]),
-    ).fit(X_final, df["compra"])
+    config = json.loads(CONFIG.read_text(encoding="utf-8"))
+    params, splines = config["parametros"], config["splines"]
+    # Notebook 07, spline section: continuous columns expanded, the rest passed through.
+    modelo = Pipeline([
+        ("splines", ColumnTransformer(
+            [("spline", SplineTransformer(n_knots=splines["n_knots"], degree=splines["degree"]), splines["columnas"])],
+            remainder="passthrough",
+        )),
+        ("logit", LogisticRegression(
+            C=float(params["C"]), penalty=params["penalty"], solver=params["solver"],
+            max_iter=int(params["max_iter"]), random_state=int(params["random_state"]),
+        )),
+    ]).fit(X_final, df["compra"])
     return modelo, X_final, df, df_train, df_validation, finalistas
 
 
@@ -103,12 +115,19 @@ def test_usa_las_40_finalistas_y_la_configuracion_congelada(produccion, oraculo)
     _, pipeline, meta = produccion
     *_, finalistas = oraculo
     modelo = pipeline[-1]
+    splines = pipeline.named_steps["splines"]
 
     assert meta["variables"] == finalistas and len(finalistas) == 40
-    assert modelo.coef_.shape == (1, 40)
+    # 4 continuous columns x (6 knots + degree 3 - 1) basis functions + 36 passed through.
+    assert modelo.coef_.shape == (1, 4 * 8 + 36)
     assert modelo.get_params()["penalty"] == "l2"
-    assert modelo.get_params()["C"] == pytest.approx(14.528246637516036)
+    assert modelo.get_params()["C"] == pytest.approx(1.2229467525390603)
     assert modelo.get_params()["solver"] == "saga"
+    expandidas = [finalistas[i] for i in splines.transformers_[0][2]]
+    assert expandidas == [
+        "tiempo_en_site_total_yj_mm", "paginas_vistas_visita_yj_mm", "score_actividad_mm", "score_perfil_mm",
+    ]
+    assert splines.transformers_[0][1].get_params()["n_knots"] == 6
 
 
 def test_entrena_solo_con_el_70_y_nunca_con_validation(produccion, oraculo):

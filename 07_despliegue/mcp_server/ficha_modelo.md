@@ -12,17 +12,20 @@ Un modelo que estima la **probabilidad de que un lead termine comprando**. Sirve
 
 ## Cómo calcula el resultado
 
-Es una **regresión logística**, la más simple y transparente de las familias de modelos. Cada dato del lead suma o resta "puntos" a favor de la compra. El modelo combina todos esos puntos y los convierte en una probabilidad entre 0 y 1 (el `score`). Si el score llega a 0,5, la `prediccion` es 1.
+Es una **regresión logística con splines**. Cada dato del lead suma o resta "puntos" a favor de la compra. El modelo combina todos esos puntos y los convierte en una probabilidad entre 0 y 1 (el `score`). Si el score llega a 0,5, la `prediccion` es 1.
 
-Configuración actual: penalización L2, C = 14,53. Trabaja con 40 columnas derivadas de los 12 datos (cada categoría de un dato pasa a ser una columna), elegidas en la preselección de variables. Los datos faltantes se rellenan antes de calcular y, en visitas y en el score de actividad, el modelo además sabe que estaban vacíos.
+En los 4 datos numéricos continuos (tiempo en el sitio, páginas vistas por visita y los dos scores de marketing automation), los puntos no crecen en línea recta: siguen una curva suave (splines), que puede subir, frenarse o bajar según el tramo del valor. Por ejemplo, pasar de 0 a algunos segundos en el sitio no pesa lo mismo que pasar de mucho a muchísimo tiempo. El resto de los datos funciona igual que en una regresión logística común.
+
+Configuración actual: penalización L2, C = 1,22, splines cúbicos con 6 nodos. Parte de 40 columnas derivadas de los 12 datos (cada categoría de un dato pasa a ser una columna), elegidas en la preselección de variables; cada numérica continua se expande en 8 columnas de curva, así que el modelo trabaja con 68 columnas. Los datos faltantes se rellenan antes de calcular y, en visitas y en el score de actividad, el modelo además sabe que estaban vacíos.
 
 ## Qué tan bien funciona
 
 Medido una sola vez sobre 2.722 leads que el modelo nunca vio (el 30% reservado para validar):
 
-- **Capacidad de ordenar (AUC): 0,887.** Si tomás un lead que compró y uno que no, el modelo le da más score al comprador el 88,7% de las veces. Durante el desarrollo, con validación cruzada, había dado 0,892: los dos números son consistentes.
-- **Si se prioriza por score:** entre el 10% de leads con más score compra el 94% y se capturan el 25% de todos los compradores. En el 20% superior compra el 89% (47% de los compradores). En el 30% superior compra el 81% (64% de los compradores). Sin modelo, compra el 37,9%.
-- **Con el corte en 0,5:** acierta 81 de cada 100 leads. De cada 100 que marca como compradores, 78 compran (precisión). De cada 100 compradores reales, detecta 71 (recall).
+- **Capacidad de ordenar (AUC): 0,910.** Si tomás un lead que compró y uno que no, el modelo le da más score al comprador el 91,0% de las veces. Durante el desarrollo, con validación cruzada, había dado 0,911: los dos números son consistentes.
+- **Si se prioriza por score:** entre el 10% de leads con más score compra el 97% y se capturan el 26% de todos los compradores. En el 20% superior compra el 92% (48% de los compradores). En el 30% superior compra el 85% (67% de los compradores). Sin modelo, compra el 37,9%.
+- **Con el corte en 0,5:** acierta 84 de cada 100 leads. De cada 100 que marca como compradores, 81 compran (precisión). De cada 100 compradores reales, detecta 76 (recall).
+- **Contra el modelo anterior** (regresión logística sin splines), sobre los mismos leads: el AUC sube de 0,887 a 0,910 y el recall de 71 a 76 de cada 100 compradores.
 
 El modelo desplegado se entrenó solo con el 70% de los datos, así que estas cifras no están contaminadas por haber visto los leads evaluados.
 
@@ -32,14 +35,15 @@ Según el análisis exploratorio, separan mejor a compradores de no compradores 
 
 ## Límites y advertencias
 
-- **Posible leakage.** El rendimiento del modelo depende bastante de `ult_actividad` y `ocupacion`, y no se descarta que reflejen información posterior al contacto comercial (DEC-014). En la auditoría (validación cruzada) el AUC pasaba de 0,895 a 0,838 al quitar ambas. Si el lead se puntúa antes de que esas variables existan, el score real será menos preciso.
+- **Posible leakage.** El rendimiento del modelo depende bastante de `ult_actividad` y `ocupacion`, y no se descarta que reflejen información posterior al contacto comercial (DEC-014). En la auditoría (validación cruzada, hecha con el modelo sin splines) el AUC pasaba de 0,895 a 0,838 al quitar ambas. Si el lead se puntúa antes de que esas variables existan, el score real será menos preciso.
 - **Es correlación, no causa.** Que una variable suba el score no significa que cambiarla haga comprar a ese lead.
 - **Faltantes frecuentes.** Los scores de marketing automation faltan en el 46% de los leads (suelen ser leads nuevos), y la ocupación en el 30%. Con muchos datos vacíos el score es menos confiable.
 - **Campos que nunca faltaron al entrenar.** Origen, aceptación de emails y descarga del material siempre venían completos. Si llegan vacíos, el modelo los trata como la categoría de referencia (origen API o Lead Add Form, que codifican igual; "No" en los otros dos), y el tiempo en el sitio vacío se reemplaza por la mediana. El resultado en esos casos es una estimación sin respaldo en los datos de entrenamiento.
 - **El corte 0,5 no está calibrado con evidencia de negocio.** Es un valor convencional. Todavía no se midió qué corte conviene según costo y beneficio del contacto comercial.
+- **Las curvas no se extienden más allá de lo visto.** Fuera del rango de valores de entrenamiento, el aporte de un dato numérico queda fijo en el del borde de la curva. Además, algunas formas de la curva pueden no ser intuitivas: por ejemplo, 0 páginas vistas por visita sube el score respecto de un lead típico. Refleja un patrón de los datos históricos, no una regla de negocio.
 - **Categorías muy raras son inestables.** Por ejemplo, `Housewife` tiene pocos casos (DEC-015 propone agruparlas y sigue pendiente).
 - **Datos de un solo origen.** El modelo aprendió de un único conjunto histórico; si cambia el perfil de los leads, hay que revisarlo y reentrenarlo.
 
 ## Historial
 
-Hasta el 22/10/2026 la API ejecutaba un modelo distinto del que describían los notebooks (más columnas, entrenado con todos los leads y sin validación externa). Desde la alineación (DEC-016), el modelo desplegado es el de los notebooks.
+Hasta el 22/10/2026 la API ejecutaba un modelo distinto del que describían los notebooks (más columnas, entrenado con todos los leads y sin validación externa). Desde la alineación (DEC-016), el modelo desplegado es el de los notebooks. El 22/10/2026 la regresión logística lineal (C = 14,53, AUC 0,887 en validación) se reemplazó por la versión con splines (DEC-019).

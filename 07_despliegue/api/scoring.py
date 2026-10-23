@@ -52,8 +52,12 @@ def _variable_de(nombre_transformado: str) -> str:
 
 _preprocesador = pipeline[:-1]
 _modelo = pipeline[-1]
-# The "finalistas" step keeps the 40 columns the model was fitted on, in order.
-_VARIABLE_POR_COLUMNA = [_variable_de(n) for n in pipeline.named_steps["finalistas"].kw_args["nombres"]]
+# The "finalistas" step keeps the 40 finalist columns; "splines" expands the continuous ones into
+# basis columns ("<column>_sp_<k>"). Its output names are the columns the model was fitted on, in order.
+_COLUMNAS_MODELO = pipeline.named_steps["splines"].get_feature_names_out(
+    pipeline.named_steps["finalistas"].kw_args["nombres"]
+)
+_VARIABLE_POR_COLUMNA = [_variable_de(n) for n in _COLUMNAS_MODELO]
 
 
 def _valor_crudo(valor):
@@ -112,8 +116,9 @@ def _referencia() -> tuple[dict[str, float], float]:
 def explicar_df(df: pd.DataFrame) -> list[dict]:
     """Explain each lead's score against the average lead, as exact logit contributions.
 
-    The model is a logistic regression, so logit = intercept + sum(coef * transformed value).
-    Grouping the terms by raw variable and subtracting the average lead's term gives
+    The model is a logistic regression on spline-expanded columns, so it stays additive:
+    logit = intercept + sum(coef * transformed value), where a continuous variable contributes
+    through all its spline columns (a curve instead of a straight line). Grouping the terms by raw variable and subtracting the average lead's term gives
     logit = logit_referencia + sum(contribucion): "sube"/"baja" mean above/below a typical lead.
     """
     df_aceptados, _ = prepara_datos(df)

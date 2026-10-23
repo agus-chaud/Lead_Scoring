@@ -17,4 +17,5 @@ def test_la_ficha_describe_el_modelo_desplegado():
     assert f"C = {c}" in texto, "la ficha no refleja el C del modelo desplegado"
     assert f"penalización {penalizacion}" in texto
     assert f"{modelo.coef_.shape[1]} columnas" in texto
+    assert "splines" in texto, "la ficha no explica que el modelo usa splines"
     assert f"{len(scoring.VARIABLES)} datos" in texto

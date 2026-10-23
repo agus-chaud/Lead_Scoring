@@ -273,3 +273,17 @@
 **Conclusión:** La versión de `mcp` queda fijada en 1.30.0 porque la 2.x renombró `FastMCP` a `MCPServer`; el servidor declara `httpx` porque el SDK ya no lo incluye. El umbral 0,5 está duplicado en `server.py` y en `api/scoring.py`. La ficha del modelo se mantiene a mano: las cifras de rendimiento no se actualizan solas. Tras cada reentrenamiento hay que ejecutar `03_evaluar_validacion.py` y copiar AUC, precisión, recall y top-k a la ficha. Dos tests lo vigilan: `test_ficha.py` compara los parámetros con el modelo real, y `test_evaluacion_y_batch.py` falla si `evaluacion_validacion.json` es de otro artefacto o si la ficha muestra un AUC, una precisión o un recall distintos a los del JSON.
 
 **Código afectado:** `07_despliegue/mcp_server/`.
+
+## DEC-019: Regresión logística con splines en producción
+
+**Área:** modelización y despliegue | **Fase:** modelización | **Fecha:** 2026-10-22 | **Estado:** Vigente
+
+**Decisión:** Desplegar una regresión logística con splines cúbicos (`SplineTransformer`, 6 nodos, grado 3) sobre las 4 columnas continuas finalistas: `tiempo_en_site_total_yj_mm`, `paginas_vistas_visita_yj_mm`, `score_actividad_mm` y `score_perfil_mm`. Las otras 36 finalistas pasan sin cambios y la logística (C=1,2229, L2, saga) se ajusta sobre 68 columnas. `07_Modelizacion.ipynb` escribe la configuración en `config_mejor_modelo.json` (claves `parametros` y `splines`) y `01_reentrenamiento.py` la lee.
+
+**Alternativa descartada:** (1) Mantener la logística lineal de DEC-016. (2) Recuperar `visitas_total_yj_mm`, que la preselección eliminó con un RFECV lineal. (3) Usar con splines el C del modelo lineal (14,53).
+
+**Por qué la descartamos:** (1) Con los mismos 5 folds, los splines suben el ROC AUC de 0,892 a 0,911 y ganan en todos los folds; en `validation.pkl` pasa de 0,887 a 0,910 (bootstrap de 1.000 remuestreos: diferencia [+0,017; +0,028], positiva en el 100%). (2) Gana en los 5 folds pero solo +0,0008 de media (máximo +0,0017), y sumarla obliga a cambiar el contrato de variables de producción. (3) La diferencia con el C ajustado es despreciable (+0,0009 de AUC en CV); se eligió el C ajustado por decisión del usuario.
+
+**Conclusión:** El modelo sigue siendo aditivo en el logit, así que `/explain` (DEC-017) se mantiene exacto: cada variable continua aporta la suma de sus 8 columnas de curva. Fuera del rango de entrenamiento la curva queda fija en el valor del borde. Algunas formas no son intuitivas (por ejemplo, 0 páginas vistas por visita sube el score frente a un lead típico); reflejan los datos históricos. La auditoría de leakage (DEC-014) se hizo con el modelo lineal y no se repitió. La celda de persistencia original de `07_Modelizacion.ipynb` (celda 15) sobrescribe `informe_modelizacion.md` y agrega una línea a `copilot-instructions.md` con textos desactualizados si se ejecuta el notebook completo.
+
+**Código afectado:** `03_notebooks/07_Modelizacion.ipynb`, `06_resultados/Modelizacion/config_mejor_modelo.json`, `07_despliegue/01_reentrenamiento.py`, `07_despliegue/api/scoring.py`, `07_despliegue/artefacto_pipeline.pkl`, `07_despliegue/api/`, `07_despliegue/mcp_server/ficha_modelo.md`.

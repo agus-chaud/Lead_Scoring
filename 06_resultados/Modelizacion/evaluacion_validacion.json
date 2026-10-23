@@ -1,28 +1,28 @@
 {
   "fecha": "2026-10-22",
-  "artefacto_sha256": "dc5e9dd40dd536594f692ae15a61a9fec6bf3e9ae60745ceeb6e0ce33b7e1749",
+  "artefacto_sha256": "580643bc109f9776ffb94003bc811bb81483d3ebc5cab516a0cc904057276098",
   "filas_validacion": 2728,
   "filas_evaluadas": 2722,
   "filas_rechazadas_por_extremos": 6,
   "umbral": 0.5,
   "metricas": {
-    "roc_auc": 0.8868323127379477,
-    "accuracy": 0.813372520205731,
-    "precision": 0.7757894736842105,
-    "recall": 0.7141472868217055,
+    "roc_auc": 0.9095262258611991,
+    "accuracy": 0.8405584129316679,
+    "precision": 0.8057259713701431,
+    "recall": 0.7635658914728682,
     "tasa_base": 0.37913299044819987,
-    "proporcion_predicha_compra": 0.349008082292432,
+    "proporcion_predicha_compra": 0.35929463629684055,
     "top_10pct": {
-      "tasa_compra": 0.9411764705882353,
-      "compradores_capturados": 0.24806201550387597
+      "tasa_compra": 0.9705882352941176,
+      "compradores_capturados": 0.2558139534883721
     },
     "top_20pct": {
-      "tasa_compra": 0.8860294117647058,
-      "compradores_capturados": 0.46705426356589147
+      "tasa_compra": 0.9172794117647058,
+      "compradores_capturados": 0.48352713178294576
     },
     "top_30pct": {
-      "tasa_compra": 0.8137254901960784,
-      "compradores_capturados": 0.6434108527131783
+      "tasa_compra": 0.8480392156862745,
+      "compradores_capturados": 0.6705426356589147
     }
   }
 }

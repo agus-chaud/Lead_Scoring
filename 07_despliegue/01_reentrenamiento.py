@@ -1,9 +1,10 @@
 """Retrain the production pipeline following the contract in 00_manifiesto_preproduccion.json.
 
-Inference path (what the notebooks decided, notebook 08):
-    quality + category rules -> frozen preprocessor -> 40 finalist columns -> LogisticRegression
+Inference path (what the notebooks decided, notebooks 07 and 08):
+    quality + category rules -> frozen preprocessor -> 40 finalist columns
+    -> splines on the continuous columns (config "splines") -> LogisticRegression
 
-Only the logistic regression is fitted here, on the 70% training split (random_state=42).
+Only the splines and the logistic regression are fitted here, on the 70% training split (random_state=42).
 The 30% validation split (02_datos/02_Validacion/validation.pkl) is never used for fitting.
 Run it from anywhere:  python 07_despliegue/01_reentrenamiento.py
 """
@@ -17,10 +18,11 @@ import cloudpickle
 import joblib
 import numpy as np
 import pandas as pd
+from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer
+from sklearn.preprocessing import FunctionTransformer, SplineTransformer
 
 ROOT = Path(__file__).resolve().parents[1]
 CSV_PATH = ROOT / "02_datos" / "01_Originales" / "Leads.csv"
@@ -123,12 +125,17 @@ def cargar_contrato(root=ROOT):
     faltantes = sorted(set(finalistas) - set(nombres))
     if faltantes:
         raise ValueError(f"Variables finalistas que el preprocesador no produce: {faltantes}")
+    config = json.loads((root / CONFIG_PATH.relative_to(ROOT)).read_text(encoding="utf-8"))
+    sin_finalista = sorted(set(config["splines"]["columnas"]) - set(finalistas))
+    if sin_finalista:
+        raise ValueError(f"Columnas con splines que no son finalistas: {sin_finalista}")
     return {
         "preprocesador": preprocesador,
         "nombres": nombres,
         "finalistas": finalistas,
         "indices": [nombres.index(f) for f in finalistas],
-        "parametros": json.loads((root / CONFIG_PATH.relative_to(ROOT)).read_text(encoding="utf-8"))["parametros"],
+        "parametros": config["parametros"],
+        "splines": config["splines"],
         "pasos": json.loads((root / CALIDAD_PATH.relative_to(ROOT)).read_text(encoding="utf-8"))["steps"],
         "reglas": json.loads((root / REGLAS_PATH.relative_to(ROOT)).read_text(encoding="utf-8")),
     }
@@ -162,16 +169,24 @@ def entrenar(root=ROOT):
     )
     X_final = seleccion.transform(preprocesador.transform(limpieza.transform(entrenamiento)))
 
+    s = contrato["splines"]
+    # Output names: "<column>_sp_<k>" for the expanded columns, the finalist name for the rest.
+    splines = ColumnTransformer(
+        [("spline", SplineTransformer(n_knots=int(s["n_knots"]), degree=int(s["degree"])),
+          [contrato["finalistas"].index(c) for c in s["columnas"]])],
+        remainder="passthrough",
+        verbose_feature_names_out=False,
+    ).fit(X_final)
     p = contrato["parametros"]
     modelo = LogisticRegression(
         C=float(p["C"]), penalty=p["penalty"], solver=p["solver"],
         max_iter=int(p["max_iter"]), random_state=int(p["random_state"]),
-    ).fit(X_final, entrenamiento[TARGET])
+    ).fit(splines.transform(X_final), entrenamiento[TARGET])
 
     # Assembled from fitted parts: Pipeline.fit would refit the frozen preprocessor.
     pipeline = Pipeline(
         [("limpieza", limpieza), ("preprocesador", preprocesador),
-         ("finalistas", seleccion), ("logisticregression", modelo)]
+         ("finalistas", seleccion), ("splines", splines), ("logisticregression", modelo)]
     )
     meta = {
         "variables": contrato["finalistas"],
@@ -179,6 +194,7 @@ def entrenar(root=ROOT):
         "ids_entrenamiento": entrenamiento[ID_COLUMN].tolist(),
         "n_validacion_reservada": int(len(df_validation)),
         "parametros": p,
+        "splines": s,
     }
     return pipeline, meta
 
@@ -200,4 +216,5 @@ if __name__ == "__main__":
     print(f"Variables finalistas: {len(meta['variables'])}")
     print(f"Filas de entrenamiento: {meta['n_entrenamiento']} (validación reservada: {meta['n_validacion_reservada']})")
     print(f"Parámetros: {meta['parametros']}")
+    print(f"Splines: {meta['splines']}")
     print(f"Artefacto: {ARTEFACTO_PATH}")
