@@ -132,7 +132,9 @@ COMO_LEERLO = (
     "Cada factor compara al lead con un lead promedio (el de `score_referencia`): sube o baja "
     "sus chances (odds) de compra respecto de uno típico. x2 las duplica y x0,5 las reduce a la "
     "mitad. El score final sale de combinar todos los factores multiplicándolos, no de sumar "
-    "puntos porcentuales."
+    "puntos porcentuales. En los datos numéricos (tiempo en el sitio, páginas por visita y los "
+    "scores) el efecto sigue una curva (splines): el mismo aumento puede pesar mucho en valores "
+    "bajos y casi nada en valores altos."
 )
 
 
@@ -185,7 +187,13 @@ async def explain_score(
     """Explica CÓMO se llega al score de UN lead: qué variables lo suben o lo bajan y cuánto.
 
     Usa los mismos campos que `score_lead` más `top` (cuántos factores mostrar, por defecto 5).
-    La explicación es exacta (el modelo es una regresión logística), no una aproximación.
+    El modelo es una regresión logística con splines: en los datos numéricos continuos (tiempo
+    en el sitio, páginas por visita y los dos scores) el efecto sigue una curva en vez de una
+    recta, así que el mismo cambio no pesa igual en todos los rangos. Como el modelo suma el
+    aporte de cada dato por separado, la explicación es exacta, no una aproximación.
+    Si el usuario pregunta qué son los splines, por qué superan a la regresión logística
+    tradicional o cómo se comprobó (validación cruzada y validation.pkl), usá el recurso
+    `leadscoring://ficha-modelo`.
     Devuelve el `resumen` en lenguaje natural, los `factores_principales` ordenados por impacto,
     `avisos` (datos faltantes, posible leakage) y `como_leerlo` para interpretar los multiplicadores.
     """

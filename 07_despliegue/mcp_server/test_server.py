@@ -182,6 +182,7 @@ async def test_explain_score_incluye_resumen_y_como_leerlo(monkeypatch):
     assert salida["score_referencia"] == 0.305
     assert "lead promedio" in salida["como_leerlo"]
     assert "chances" in salida["como_leerlo"]
+    assert "curva (splines)" in salida["como_leerlo"]
     assert len(salida["factores_principales"]) == 5  # default top
 
 
@@ -228,6 +229,9 @@ async def test_ficha_del_modelo_esta_publicada_como_recurso():
 
     contenido = await server.mcp.read_resource("leadscoring://ficha-modelo")
     texto = contenido[0].content
-    for seccion in ("Qué es", "Qué tan bien funciona", "Límites"):
+    for seccion in ("Qué es", "Qué tan bien funciona", "Por qué usa splines", "Límites"):
         assert seccion in texto
     assert "leakage" in texto
+    # Non-technical users must find what splines are and how the improvement was checked.
+    for termino in ("Qué son los splines", "Validación cruzada", "validation.pkl", "bootstrap"):
+        assert termino in texto

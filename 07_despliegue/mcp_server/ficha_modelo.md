@@ -29,6 +29,20 @@ Medido una sola vez sobre 2.722 leads que el modelo nunca vio (el 30% reservado 
 
 El modelo desplegado se entrenó solo con el 70% de los datos, así que estas cifras no están contaminadas por haber visto los leads evaluados.
 
+## Por qué usa splines y cómo comprobamos que es mejor
+
+**El problema de la regresión logística tradicional.** La versión tradicional supone que cada dato numérico empuja la probabilidad de compra siempre igual: si 5 minutos más en el sitio suman, otros 5 minutos suman exactamente lo mismo, sin importar si el lead estuvo 1 minuto o 1 hora. Es como medir una ruta con una regla recta: sirve si el camino es recto, pero falla en las curvas.
+
+**Qué son los splines.** Un spline es una forma de dibujar una curva suave uniendo varios tramos. El modelo parte cada dato numérico en tramos (acá, separados por 6 puntos llamados "nodos") y en cada tramo ajusta una curva. Así puede aprender, por ejemplo, que pasar de 0 a unos minutos en el sitio sube mucho las chances y que, después de cierto punto, más tiempo ya casi no agrega. Los datos que no son números (como la ocupación o la fuente) siguen igual.
+
+**Por qué no pierde explicabilidad.** Aunque las curvas sean más flexibles, el modelo sigue armando el resultado sumando el aporte de cada dato por separado. Por eso `explain_score` puede mostrar, con exactitud y sin aproximaciones, cuánto sube o baja cada dato el score de un lead.
+
+**Cómo comprobamos que de verdad es mejor.** Usamos dos pruebas, las dos con leads que el modelo no había visto al aprender:
+
+- **Validación cruzada.** Durante el desarrollo, los datos de entrenamiento se dividieron en 5 partes ("folds"). El modelo aprendió con 4 partes y se evaluó con la quinta, y eso se repitió 5 veces rotando la parte de evaluación. Los dos modelos usaron exactamente las mismas 5 divisiones, así que la comparación es justa. Con splines el AUC promedio pasó de 0,892 a 0,911, y fue mejor en las 5 rondas, no solo en promedio.
+- **Validación externa (`validation.pkl`).** Antes de empezar se apartó el 30% de los leads y nadie lo usó para elegir ni ajustar el modelo. Recién al final se evaluaron ahí los dos modelos, una sola vez: el AUC pasó de 0,887 a 0,910. Es la prueba más parecida a usar el modelo con leads nuevos.
+- **¿Puede ser suerte?** Para descartarlo usamos **bootstrap**: se armaron 1.000 muestras al azar a partir de los leads de validación y en cada una se volvió a comparar a los dos modelos. Los splines ganaron en las 1.000. En el 95% de los casos la mejora de AUC quedó entre 0,017 y 0,028, siempre por encima de cero.
+
 ## Qué señales pesan más
 
 Según el análisis exploratorio, separan mejor a compradores de no compradores la **ocupación**, la **última actividad**, el **origen** del lead, el **ámbito** y la **fuente**, y entre las numéricas el **tiempo en el sitio**. Para ver cómo influye cada dato en un lead concreto, usá la herramienta `explain_score`.
